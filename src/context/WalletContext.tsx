@@ -12,6 +12,7 @@ interface WalletContextType {
   connectMetaMask: () => Promise<void>;
   disconnect: () => void;
   getBalance: () => Promise<number | null>;
+  signMessage: (message: string) => Promise<string>;
   isMetaMaskInstalled: boolean;
 }
 
@@ -29,6 +30,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     connectMetaMask,
     disconnect,
     getBalance,
+    signMessage,
     isMetaMaskInstalled
   } = useEthereumWallet();
 
@@ -39,6 +41,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     connectMetaMask,
     disconnect,
     getBalance,
+    signMessage,
     isMetaMaskInstalled
   };
 

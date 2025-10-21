@@ -91,6 +91,21 @@ export const useEthereumWallet = () => {
     return null;
   }, [wallet]);
 
+  const signMessage = useCallback(async (message: string): Promise<string> => {
+    if (!wallet || !wallet.provider) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      const signer = await wallet.provider.getSigner();
+      const signature = await signer.signMessage(message);
+      return signature;
+    } catch (err) {
+      console.error('Error signing message:', err);
+      throw err;
+    }
+  }, [wallet]);
+
   useEffect(() => {
     checkIfWalletIsConnected();
 
@@ -124,6 +139,7 @@ export const useEthereumWallet = () => {
     connectMetaMask,
     disconnect,
     getBalance,
+    signMessage,
     isMetaMaskInstalled: typeof window !== 'undefined' && !!window.ethereum
   };
 };
