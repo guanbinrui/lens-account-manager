@@ -2,21 +2,21 @@ import { useState, useCallback, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { ConnectedWallet } from '@/types/wallet';
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
 export const useEthereumWallet = () => {
   const [wallet, setWallet] = useState<ConnectedWallet | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false);
+
+  // Check MetaMask installation on client-side only
+  useEffect(() => {
+    setIsMetaMaskInstalled(typeof window !== 'undefined' && !!window.ethereum);
+  }, []);
 
   const checkIfWalletIsConnected = useCallback(async () => {
     try {
       if (typeof window !== 'undefined' && window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
         
         if (accounts.length > 0) {
           const provider = new ethers.BrowserProvider(window.ethereum);
@@ -45,7 +45,7 @@ export const useEthereumWallet = () => {
 
       const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts',
-      });
+      }) as string[];
 
       if (accounts.length === 0) {
         throw new Error('No accounts found');
@@ -60,8 +60,9 @@ export const useEthereumWallet = () => {
         provider
       });
 
-    } catch (err: any) {
-      setError(err.message || 'Failed to connect MetaMask');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to connect MetaMask';
+      setError(errorMessage);
       console.error('MetaMask connection error:', err);
     } finally {
       setConnecting(false);
@@ -126,8 +127,8 @@ export const useEthereumWallet = () => {
       window.ethereum.on('chainChanged', handleChainChanged);
 
       return () => {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        window.ethereum?.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum?.removeListener('chainChanged', handleChainChanged);
       };
     }
   }, [checkIfWalletIsConnected, disconnect]);
@@ -140,6 +141,6 @@ export const useEthereumWallet = () => {
     disconnect,
     getBalance,
     signMessage,
-    isMetaMaskInstalled: typeof window !== 'undefined' && !!window.ethereum
+    isMetaMaskInstalled
   };
 };

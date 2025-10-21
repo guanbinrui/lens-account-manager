@@ -1,8 +1,19 @@
 import { LensConfig, development } from '@lens-protocol/react-web';
 import { bindings as wagmiBindings } from '@lens-protocol/wagmi';
+import { createConfig, http } from 'wagmi';
+import { mainnet, polygon } from 'wagmi/chains';
+
+// Create a minimal wagmi config for Lens Protocol bindings
+const wagmiConfig = createConfig({
+  chains: [mainnet, polygon],
+  transports: {
+    [mainnet.id]: http(),
+    [polygon.id]: http(),
+  },
+});
 
 export const lensConfig: LensConfig = {
-  bindings: wagmiBindings(),
+  bindings: wagmiBindings(wagmiConfig),
   environment: development,
 };
 
@@ -10,80 +21,265 @@ export const lensConfig: LensConfig = {
 export const LENS_API_URL = 'https://api.lens.xyz/graphql';
 
 // GraphQL queries for Lens Protocol
-export const GET_PROFILES_BY_ADDRESS = `
-  query GetProfilesByAddress($address: EthereumAddress!) {
-    profiles(request: { where: { ownedBy: [$address] } }) {
+export const ACCOUNTS_AVAILABLE_QUERY = `
+  query AccountsAvailable($request: AccountsAvailableRequest!) {
+    value: accountsAvailable(request: $request) {
       items {
-        id
-        handle {
-          fullHandle
-          localName
+        ...AccountAvailable
+      }
+      pageInfo {
+        ...PaginatedResultInfo
+      }
+    }
+  }
+  fragment AccountAvailable on AccountAvailable {
+    __typename
+    ... on AccountManaged {
+      ...AccountManaged
+    }
+    ... on AccountOwned {
+      __typename
+      addedAt
+      account {
+        ...Account
+      }
+    }
+  }
+  fragment Account on Account {
+    __typename
+    address
+    owner
+    score
+    createdAt
+    username {
+      ...Username
+    }
+    metadata {
+      ...AccountMetadata
+    }
+    operations {
+      ...LoggedInAccountOperations
+    }
+    rules {
+      ...AccountFollowRules
+    }
+    actions {
+      ...AccountAction
+    }
+  }
+  fragment AccountMetadata on AccountMetadata {
+    __typename
+    attributes {
+      ...MetadataAttribute
+    }
+    bio
+    coverPicture
+    id
+    name
+    picture
+  }
+  fragment MetadataAttribute on MetadataAttribute {
+    __typename
+    type
+    key
+    value
+  }
+  fragment LoggedInAccountOperations on LoggedInAccountOperations {
+    __typename
+    id
+    isFollowedByMe
+    isFollowingMe
+    canFollow {
+      ...AccountFollowOperationValidationOutcome
+    }
+    canUnfollow {
+      ...AccountFollowOperationValidationOutcome
+    }
+    isMutedByMe
+    isBlockedByMe
+    hasBlockedMe
+    canBlock
+    canUnblock
+    hasReported
+  }
+  fragment AccountFollowOperationValidationOutcome on AccountFollowOperationValidationOutcome {
+    __typename
+  }
+  fragment AccountFollowRules on AccountFollowRules {
+    __typename
+    required {
+      ...AccountFollowRule
+    }
+    anyOf {
+      ...AccountFollowRule
+    }
+  }
+  fragment AccountFollowRule on AccountFollowRule {
+    __typename
+    id
+    address
+    type
+    config {
+      ...AnyKeyValue
+    }
+  }
+  fragment AnyKeyValue on AnyKeyValue {
+    __typename
+  }
+  fragment AccountAction on AccountAction {
+    __typename
+  }
+  fragment Username on Username {
+    __typename
+    id
+    value
+    localName
+    linkedTo
+    ownedBy
+    timestamp
+    namespace
+    operations {
+      ...LoggedInUsernameOperations
+    }
+  }
+  fragment LoggedInUsernameOperations on LoggedInUsernameOperations {
+    __typename
+    id
+    canRemove {
+      ...NamespaceOperationValidationOutcome
+    }
+    canAssign {
+      ...NamespaceOperationValidationOutcome
+    }
+    canUnassign {
+      ...NamespaceOperationValidationOutcome
+    }
+  }
+  fragment NamespaceOperationValidationOutcome on NamespaceOperationValidationOutcome {
+    __typename
+  }
+  fragment AccountManaged on AccountManaged {
+    __typename
+    addedAt
+    account {
+      ...Account
+    }
+    permissions {
+      ...AccountManagerPermissions
+    }
+  }
+  fragment AccountManagerPermissions on AccountManagerPermissions {
+    __typename
+    canExecuteTransactions
+    canSetMetadataUri
+    canTransferNative
+    canTransferTokens
+  }
+  fragment PaginatedResultInfo on PaginatedResultInfo {
+    __typename
+    prev
+    next
+  }
+`;
+
+// Authentication queries and mutations
+export const CHALLENGE_QUERY = `
+  mutation Challenge($request: ChallengeRequest!) {
+    value: challenge(request: $request) {
+      ...AuthenticationChallenge
+    }
+  }
+  fragment AuthenticationChallenge on AuthenticationChallenge {
+    __typename
+    id
+    text
+  }
+`;
+
+export const AUTHENTICATE_MUTATION = `
+  mutation Authenticate($request: SignedAuthChallenge!) {
+    value: authenticate(request: $request) {
+      ...AuthenticationResult
+    }
+  }
+  fragment AuthenticationResult on AuthenticationResult {
+    ... on AuthenticationTokens {
+      ...AuthenticationTokens
+    }
+    ... on WrongSignerError {
+      ...WrongSignerError
+    }
+    ... on ExpiredChallengeError {
+      ...ExpiredChallengeError
+    }
+    ... on ForbiddenError {
+      ...ForbiddenError
+    }
+  }
+  fragment AuthenticationTokens on AuthenticationTokens {
+    __typename
+    accessToken
+    refreshToken
+    idToken
+  }
+  fragment WrongSignerError on WrongSignerError {
+    __typename
+    reason
+  }
+  fragment ExpiredChallengeError on ExpiredChallengeError {
+    __typename
+    reason
+  }
+  fragment ForbiddenError on ForbiddenError {
+    __typename
+    reason
+  }
+`;
+
+// Legacy queries for backward compatibility
+export const GET_PROFILES_BY_ADDRESS = `
+  query GetAccountByAddress($address: EvmAddress!) {
+    account(request: { address: $address }) {
+      address
+      owner
+      createdAt
+      metadata {
+        name
+        bio
+        picture
+        coverPicture
+        attributes {
+          key
+          value
         }
-        metadata {
-          displayName
-          bio
-          picture {
-            ... on ImageSet {
-              optimized {
-                uri
-                width
-                height
-              }
-            }
-          }
-        }
-        stats {
-          followers
-          following
-          posts
-        }
-        createdAt
+      }
+      username {
+        localName
+        value
       }
     }
   }
 `;
 
 export const GET_PROFILE_DETAILS = `
-  query GetProfileDetails($profileId: ProfileId!) {
-    profile(request: { forProfileId: $profileId }) {
-      id
-      handle {
-        fullHandle
-        localName
-      }
+  query GetAccountDetails($address: EvmAddress!) {
+    account(request: { address: $address }) {
+      address
+      owner
+      createdAt
       metadata {
-        displayName
+        name
         bio
-        picture {
-          ... on ImageSet {
-            optimized {
-              uri
-              width
-              height
-            }
-          }
-        }
-        coverPicture {
-          ... on ImageSet {
-            optimized {
-              uri
-              width
-              height
-            }
-          }
-        }
+        picture
+        coverPicture
         attributes {
           key
           value
         }
       }
-      stats {
-        followers
-        following
-        posts
-        comments
-        mirrors
-        quotes
+      username {
+        localName
+        value
       }
       operations {
         isFollowedByMe {
@@ -98,28 +294,60 @@ export const GET_PROFILE_DETAILS = `
         canUnblock
         canReport
       }
-      createdAt
     }
   }
 `;
 
 // Helper function to make GraphQL requests
-export const lensRequest = async (query: string, variables: any = {}) => {
+export const lensRequest = async (query: string, variables: Record<string, unknown> = {}) => {
   try {
+    const requestBody: any = {
+      query,
+      variables,
+    };
+
+    // Add operationName for authenticate mutation to match the working curl request
+    if (query.includes('mutation Authenticate')) {
+      requestBody.operationName = 'Authenticate';
+    }
+
+    console.log('Lens API Request:', {
+      url: LENS_API_URL,
+      body: requestBody,
+    });
+
     const response = await fetch(LENS_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'accept': 'application/graphql-response+json, application/graphql+json, application/json, text/event-stream, multipart/mixed',
+        'accept-language': 'en,zh-CN;q=0.9,zh;q=0.8',
+        'cache-control': 'no-cache',
+        'content-type': 'application/json',
+        'origin': 'https://firefly.social',
+        'pragma': 'no-cache',
+        'priority': 'u=1, i',
+        'referer': 'https://firefly.social/',
+        'sec-ch-ua': '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'cross-site',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
       },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const result = await response.json();
     
+    console.log('Lens API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      data: result,
+    });
+    
     if (result.errors) {
+      console.error('Lens API Errors:', result.errors);
       throw new Error(result.errors[0]?.message || 'GraphQL Error');
     }
 

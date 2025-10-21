@@ -1,11 +1,64 @@
 import { useState, useEffect, useCallback } from 'react';
-import { LensProfile, LensProfilesResponse } from '@/types/lens';
-import { lensRequest, GET_PROFILES_BY_ADDRESS } from '@/lib/lens';
+import { LensProfile, AccountsAvailableResponse, AccountManaged, AccountOwned } from '@/types/lens';
+import { lensRequest, ACCOUNTS_AVAILABLE_QUERY } from '@/lib/lens';
 
 export const useLensProfiles = (address: string | null) => {
   const [profiles, setProfiles] = useState<LensProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper function to convert new API response to legacy LensProfile format
+  const convertToLensProfile = (accountItem: AccountManaged | AccountOwned): LensProfile => {
+    const account = accountItem.account;
+    return {
+      id: account.address,
+      handle: {
+        fullHandle: account.username?.value || '',
+        localName: account.username?.localName || '',
+      },
+      metadata: {
+        displayName: account.metadata?.name,
+        bio: account.metadata?.bio,
+        picture: account.metadata?.picture ? {
+          optimized: {
+            uri: account.metadata.picture,
+            width: 200,
+            height: 200,
+          }
+        } : undefined,
+        coverPicture: account.metadata?.coverPicture ? {
+          optimized: {
+            uri: account.metadata.coverPicture,
+            width: 800,
+            height: 200,
+          }
+        } : undefined,
+        attributes: account.metadata?.attributes?.map(attr => ({
+          key: attr.key,
+          value: attr.value,
+        })),
+      },
+      stats: {
+        followers: 0, // Not available in this API
+        following: 0, // Not available in this API
+        posts: 0, // Not available in this API
+      },
+      operations: {
+        isFollowedByMe: {
+          value: account.operations?.isFollowedByMe || false,
+        },
+        isFollowingMe: {
+          value: account.operations?.isFollowingMe || false,
+        },
+        canFollow: typeof account.operations?.canFollow === 'object',
+        canUnfollow: typeof account.operations?.canUnfollow === 'object',
+        canBlock: account.operations?.canBlock || false,
+        canUnblock: account.operations?.canUnblock || false,
+        canReport: account.operations?.hasReported || false,
+      },
+      createdAt: account.createdAt,
+    };
+  };
 
   const fetchProfiles = useCallback(async (walletAddress: string) => {
     if (!walletAddress) {
@@ -17,11 +70,18 @@ export const useLensProfiles = (address: string | null) => {
     setError(null);
 
     try {
-      const data: LensProfilesResponse = await lensRequest(GET_PROFILES_BY_ADDRESS, {
-        address: walletAddress,
+      const data: AccountsAvailableResponse = await lensRequest(ACCOUNTS_AVAILABLE_QUERY, {
+        request: {
+          hiddenFilter: 'ALL',
+          includeOwned: true,
+          managedBy: walletAddress,
+          pageSize: 'FIFTY',
+        },
       });
 
-      setProfiles(data.profiles?.items || []);
+      // Convert the new API response to legacy format
+      const convertedProfiles = data.value?.items?.map(convertToLensProfile) || [];
+      setProfiles(convertedProfiles);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch Lens profiles');
       setProfiles([]);

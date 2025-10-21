@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface WalletButtonProps {
   walletName: string;
@@ -23,6 +23,12 @@ export const WalletButton: React.FC<WalletButtonProps> = ({
   address,
   balance
 }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
@@ -32,6 +38,7 @@ export const WalletButton: React.FC<WalletButtonProps> = ({
   };
 
   const getButtonText = () => {
+    if (!isClient) return `Connect ${walletName}`; // Default state during SSR
     if (!isInstalled) return `Install ${walletName}`;
     if (isConnecting) return 'Connecting...';
     if (isConnected) return `Connected to ${walletName}`;
@@ -39,11 +46,14 @@ export const WalletButton: React.FC<WalletButtonProps> = ({
   };
 
   const getButtonStyle = () => {
+    if (!isClient) return 'bg-blue-500 hover:bg-blue-600'; // Default state during SSR
     if (!isInstalled) return 'bg-gray-400 cursor-not-allowed';
     if (isConnecting) return 'bg-blue-400 cursor-wait';
     if (isConnected) return 'bg-green-500 hover:bg-green-600';
     return 'bg-blue-500 hover:bg-blue-600';
   };
+
+  const isDisabled = !isClient ? false : (!isInstalled || isConnecting);
 
   return (
     <div className="p-4 border rounded-lg shadow-sm bg-white">
@@ -57,7 +67,7 @@ export const WalletButton: React.FC<WalletButtonProps> = ({
       
       <button
         onClick={onClick}
-        disabled={!isInstalled || isConnecting}
+        disabled={isDisabled}
         className={`w-full py-2 px-4 rounded-md text-white font-medium transition-colors ${getButtonStyle()}`}
       >
         {getButtonText()}

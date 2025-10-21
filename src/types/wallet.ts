@@ -1,7 +1,9 @@
+import { BrowserProvider } from 'ethers';
+
 export interface WalletInfo {
   name: string;
   icon: string;
-  adapter: any;
+  adapter: unknown;
 }
 
 export interface WalletState {
@@ -15,5 +17,5 @@ export interface WalletState {
 export interface ConnectedWallet {
   address: string;
   balance?: number;
-  provider?: any;
+  provider?: BrowserProvider;
 }
