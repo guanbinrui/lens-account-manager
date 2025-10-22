@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LensProfile } from '@/types/lens';
 import { useLensAuth } from '@/hooks/useLensAuth';
 import { useEthereumWallet } from '@/hooks/useEthereumWallet';
@@ -21,13 +21,35 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
   const { wallet, signMessage } = useEthereumWallet();
   const [managerAddress, setManagerAddress] = useState('');
   const [showManagerForm, setShowManagerForm] = useState(false);
+  const [selectedManagerAddress, setSelectedManagerAddress] = useState('');
+  const [showPermissionsForm, setShowPermissionsForm] = useState(false);
+  const [permissions, setPermissions] = useState({
+    canExecuteTransactions: true,
+    canSetMetadataUri: true,
+    canTransferNative: false,
+    canTransferTokens: false,
+  });
   const { 
     loading: managerLoading, 
     error: managerError, 
     success: managerSuccess,
+    accountManagers,
+    managersLoading,
+    managersError,
     addAccountManager,
+    removeAccountManager,
+    updateAccountManagerPermissions,
+    enableSignless,
+    fetchAccountManagers,
     clearMessages 
   } = useAccountManager();
+
+  // Automatically load account managers when user is authenticated
+  useEffect(() => {
+    if (authState.isAuthenticated && authState.tokens?.accessToken) {
+      fetchAccountManagers(authState.tokens.accessToken, {});
+    }
+  }, [authState.isAuthenticated, authState.tokens?.accessToken, fetchAccountManagers]);
 
   const handleSignIn = async (profile: LensProfile) => {
     if (!wallet?.address || !signMessage) {
@@ -66,6 +88,55 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
     if (success) {
       setManagerAddress('');
       setShowManagerForm(false);
+      // Refresh the managers list
+      await fetchAccountManagers(authState.tokens.accessToken, {});
+    }
+  };
+
+  const handleRemoveManager = async (address: string) => {
+    if (!authState.tokens?.accessToken) {
+      return;
+    }
+
+    const success = await removeAccountManager({
+      address,
+    }, authState.tokens.accessToken);
+
+    if (success) {
+      // Refresh the managers list
+      await fetchAccountManagers(authState.tokens.accessToken, {});
+    }
+  };
+
+  const handleUpdatePermissions = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedManagerAddress.trim() || !authState.tokens?.accessToken) {
+      return;
+    }
+
+    const success = await updateAccountManagerPermissions({
+      address: selectedManagerAddress.trim(),
+      permissions,
+    }, authState.tokens.accessToken);
+
+    if (success) {
+      setSelectedManagerAddress('');
+      setShowPermissionsForm(false);
+      // Refresh the managers list
+      await fetchAccountManagers(authState.tokens.accessToken, {});
+    }
+  };
+
+  const handleEnableSignless = async () => {
+    if (!authState.tokens?.accessToken) {
+      return;
+    }
+
+    const success = await enableSignless(authState.tokens.accessToken);
+    if (success) {
+      // Refresh the managers list
+      await fetchAccountManagers(authState.tokens.accessToken, {});
     }
   };
 
@@ -154,7 +225,18 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
               }}
               className="px-3 py-1.5 text-xs font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-md transition-colors"
             >
-              {showManagerForm ? 'Cancel Manager' : 'Manager Account'}
+              {showManagerForm ? 'Cancel Manager' : 'Add Manager'}
+            </button>
+          )}
+          
+          
+          {/* Signless Experience Button */}
+          {authState.isAuthenticated && authState.tokens?.accessToken && (
+            <button
+              onClick={handleEnableSignless}
+              className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 rounded-md transition-colors"
+            >
+              Enable Signless
             </button>
           )}
           
@@ -377,6 +459,226 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
                   onClick={() => {
                     setShowManagerForm(false);
                     setManagerAddress('');
+                    clearMessages();
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {managerError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-700 text-sm">{managerError}</p>
+                </div>
+              )}
+
+              {managerSuccess && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-green-700 text-sm">{managerSuccess}</p>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Account Managers List */}
+      {authState.isAuthenticated && authState.tokens?.accessToken && (
+        <div className="mt-6 border-t border-gray-200 pt-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Account Managers ({accountManagers.length})
+            </h3>
+          </div>
+
+          {managersLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+              <span className="ml-3 text-gray-600">Loading account managers...</span>
+            </div>
+          ) : managersError ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-red-700 text-sm">{managersError}</p>
+            </div>
+          ) : accountManagers.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-gray-400 mb-2">👥</div>
+              <p className="text-gray-600">No account managers found.</p>
+              <p className="text-gray-500 text-sm mt-2">
+                Add an account manager to delegate social operations.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {accountManagers.map((manager) => (
+                <div
+                  key={manager.manager}
+                  className="p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-all"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          Account Manager
+                        </h4>
+                        <span 
+                          className="font-mono text-xs text-gray-600 cursor-pointer hover:text-blue-600 transition-colors"
+                          title={manager.manager}
+                          onClick={() => navigator.clipboard?.writeText(manager.manager)}
+                        >
+                          {manager.manager.slice(0, 6)}...{manager.manager.slice(-4)}
+                        </span>
+                      </div>
+                      
+                      <div className="text-xs text-gray-500 mb-2">
+                        Added: {new Date(manager.addedAt).toLocaleDateString()}
+                      </div>
+
+                      <div className="flex flex-wrap gap-1">
+                        {manager.permissions.canExecuteTransactions && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                            Execute Transactions
+                          </span>
+                        )}
+                        {manager.permissions.canSetMetadataUri && (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
+                            Set Metadata URI
+                          </span>
+                        )}
+                        {manager.permissions.canTransferNative && (
+                          <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">
+                            Transfer Native Tokens
+                          </span>
+                        )}
+                        {manager.permissions.canTransferTokens && (
+                          <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">
+                            Transfer Tokens
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => {
+                          setSelectedManagerAddress(manager.manager);
+                          setPermissions(manager.permissions);
+                          setShowPermissionsForm(true);
+                        }}
+                        className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded transition-colors"
+                      >
+                        Edit Permissions
+                      </button>
+                      <button
+                        onClick={() => handleRemoveManager(manager.manager)}
+                        className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Update Permissions Form */}
+      {showPermissionsForm && authState.isAuthenticated && authState.tokens?.accessToken && (
+        <div className="mt-6 border-t border-gray-200 pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Update Account Manager Permissions
+            </h3>
+            <button
+              onClick={() => {
+                setShowPermissionsForm(false);
+                setSelectedManagerAddress('');
+                clearMessages();
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            <form onSubmit={handleUpdatePermissions} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Manager Address
+                </label>
+                <div className="font-mono text-sm text-gray-600 bg-white p-2 rounded border">
+                  {selectedManagerAddress}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Permissions
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={permissions.canExecuteTransactions}
+                      onChange={(e) => setPermissions(prev => ({ ...prev, canExecuteTransactions: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-700">Execute Transactions</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={permissions.canSetMetadataUri}
+                      onChange={(e) => setPermissions(prev => ({ ...prev, canSetMetadataUri: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-700">Set Metadata URI</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={permissions.canTransferNative}
+                      onChange={(e) => setPermissions(prev => ({ ...prev, canTransferNative: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-700">Transfer Native Tokens</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={permissions.canTransferTokens}
+                      onChange={(e) => setPermissions(prev => ({ ...prev, canTransferTokens: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-700">Transfer Tokens</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  type="submit"
+                  disabled={managerLoading}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  {managerLoading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Updating...
+                    </div>
+                  ) : (
+                    'Update Permissions'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPermissionsForm(false);
+                    setSelectedManagerAddress('');
                     clearMessages();
                   }}
                   className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"

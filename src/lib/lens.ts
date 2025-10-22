@@ -346,6 +346,106 @@ export const UPDATE_ACCOUNT_MANAGER_PERMISSIONS_MUTATION = `
   }
 `;
 
+// Signless Experience Mutations
+export const ENABLE_SIGNLESS_MUTATION = `
+  mutation EnableSignless {
+    value: enableSignless {
+      ... on SponsoredTransactionRequest {
+        ...SponsoredTransactionRequest
+      }
+      ... on SelfFundedTransactionRequest {
+        ...SelfFundedTransactionRequest
+      }
+      ... on TransactionWillFail {
+        ...TransactionWillFail
+      }
+    }
+  }
+`;
+
+export const REMOVE_SIGNLESS_MUTATION = `
+  mutation RemoveSignless {
+    value: removeSignless {
+      ... on SponsoredTransactionRequest {
+        ...SponsoredTransactionRequest
+      }
+      ... on SelfFundedTransactionRequest {
+        ...SelfFundedTransactionRequest
+      }
+      ... on TransactionWillFail {
+        ...TransactionWillFail
+      }
+    }
+  }
+`;
+
+// Account Manager Listing Query
+export const FETCH_ACCOUNT_MANAGERS_QUERY = `
+  query FetchAccountManagers($request: AccountManagersRequest!) {
+    accountManagers(request: $request) {
+      items {
+        ...AccountManager
+      }
+      pageInfo {
+        ...PaginatedResultInfo
+      }
+    }
+  }
+  fragment AccountManager on AccountManager {
+    __typename
+    manager
+    addedAt
+    permissions {
+      ...AccountManagerPermissions
+    }
+  }
+  fragment AccountManagerPermissions on AccountManagerPermissions {
+    __typename
+    canExecuteTransactions
+    canSetMetadataUri
+    canTransferNative
+    canTransferTokens
+  }
+  fragment PaginatedResultInfo on PaginatedResultInfo {
+    __typename
+    prev
+    next
+  }
+`;
+
+// Hide/Unhide Managed Account Mutations
+export const HIDE_MANAGED_ACCOUNT_MUTATION = `
+  mutation HideManagedAccount($request: HideManagedAccountRequest!) {
+    value: hideManagedAccount(request: $request) {
+      ... on SponsoredTransactionRequest {
+        ...SponsoredTransactionRequest
+      }
+      ... on SelfFundedTransactionRequest {
+        ...SelfFundedTransactionRequest
+      }
+      ... on TransactionWillFail {
+        ...TransactionWillFail
+      }
+    }
+  }
+`;
+
+export const UNHIDE_MANAGED_ACCOUNT_MUTATION = `
+  mutation UnhideManagedAccount($request: UnhideManagedAccountRequest!) {
+    value: unhideManagedAccount(request: $request) {
+      ... on SponsoredTransactionRequest {
+        ...SponsoredTransactionRequest
+      }
+      ... on SelfFundedTransactionRequest {
+        ...SelfFundedTransactionRequest
+      }
+      ... on TransactionWillFail {
+        ...TransactionWillFail
+      }
+    }
+  }
+`;
+
 // Legacy queries for backward compatibility
 export const GET_PROFILES_BY_ADDRESS = `
   query GetAccountByAddress($address: EvmAddress!) {

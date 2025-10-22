@@ -353,3 +353,48 @@ export interface TransactionWillFail {
 export type AddAccountManagerResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
 export type RemoveAccountManagerResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
 export type UpdateAccountManagerPermissionsResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
+
+// Signless Experience Types
+export interface EnableSignlessRequest {
+  // No additional parameters needed
+}
+
+export interface RemoveSignlessRequest {
+  // No additional parameters needed
+}
+
+export type EnableSignlessResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
+export type RemoveSignlessResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
+
+// Account Manager Listing Types
+export interface AccountManagersRequest {
+  // Add pagination parameters if needed
+  limit?: number;
+  cursor?: string;
+}
+
+export interface AccountManager {
+  __typename: string;
+  manager: string; // Changed from 'address' to 'manager'
+  addedAt: string;
+  permissions: AccountManagerPermissions;
+}
+
+export interface FetchAccountManagersResponse {
+  accountManagers: {
+    items: AccountManager[];
+    pageInfo: PaginatedResultInfo;
+  };
+}
+
+// Hide/Unhide Managed Account Types
+export interface HideManagedAccountRequest {
+  account: string;
+}
+
+export interface UnhideManagedAccountRequest {
+  account: string;
+}
+
+export type HideManagedAccountResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
+export type UnhideManagedAccountResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
