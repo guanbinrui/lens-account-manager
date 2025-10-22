@@ -7,15 +7,9 @@ import {
   RemoveAccountManagerResponse,
   UpdateAccountManagerPermissionsResponse,
   EnableSignlessRequest,
-  RemoveSignlessRequest,
   EnableSignlessResponse,
-  RemoveSignlessResponse,
   FetchAccountManagersResponse,
   AccountManagersRequest,
-  HideManagedAccountRequest,
-  UnhideManagedAccountRequest,
-  HideManagedAccountResponse,
-  UnhideManagedAccountResponse,
   SponsoredTransactionRequest,
   SelfFundedTransactionRequest,
   TransactionWillFail,
@@ -27,10 +21,7 @@ import {
   REMOVE_ACCOUNT_MANAGER_MUTATION,
   UPDATE_ACCOUNT_MANAGER_PERMISSIONS_MUTATION,
   ENABLE_SIGNLESS_MUTATION,
-  REMOVE_SIGNLESS_MUTATION,
   FETCH_ACCOUNT_MANAGERS_QUERY,
-  HIDE_MANAGED_ACCOUNT_MUTATION,
-  UNHIDE_MANAGED_ACCOUNT_MUTATION,
 } from "@/lib/lens";
 
 interface AccountManagerState {
@@ -394,80 +385,6 @@ export const useAccountManager = () => {
     [],
   );
 
-  const removeSignless = useCallback(
-    async (accessToken: string): Promise<boolean> => {
-      setState((prev) => ({
-        ...prev,
-        loading: true,
-        error: null,
-        success: null,
-      }));
-
-      try {
-        console.log("Removing signless experience");
-
-        const response = await lensRequest(
-          REMOVE_SIGNLESS_MUTATION,
-          {},
-          accessToken,
-        );
-
-        console.log("Remove signless response:", response);
-        const result: RemoveSignlessResponse = response.value;
-
-        if (result.__typename === "SponsoredTransactionRequest") {
-          const sponsoredTx = result as SponsoredTransactionRequest;
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: null,
-            success: `Signless experience removed! Transaction will be sponsored. Reason: ${sponsoredTx.reason}`,
-          }));
-          return true;
-        } else if (result.__typename === "SelfFundedTransactionRequest") {
-          const selfFundedTx = result as SelfFundedTransactionRequest;
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: null,
-            success: `Signless experience removed! You need to fund the transaction. Reason: ${selfFundedTx.reason}`,
-          }));
-          return true;
-        } else if (result.__typename === "TransactionWillFail") {
-          const failTx = result as TransactionWillFail;
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: `Transaction will fail: ${failTx.reason}`,
-            success: null,
-          }));
-          return false;
-        } else {
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: "Unknown error occurred",
-            success: null,
-          }));
-          return false;
-        }
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Failed to remove signless experience";
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: errorMessage,
-          success: null,
-        }));
-        return false;
-      }
-    },
-    [],
-  );
-
   const fetchAccountManagers = useCallback(
     async (
       accessToken: string,
@@ -516,206 +433,6 @@ export const useAccountManager = () => {
     [],
   );
 
-  const hideManagedAccount = useCallback(
-    async (
-      request: HideManagedAccountRequest,
-      accessToken: string,
-    ): Promise<boolean> => {
-      setState((prev) => ({
-        ...prev,
-        loading: true,
-        error: null,
-        success: null,
-      }));
-
-      try {
-        console.log("Hiding managed account:", request);
-
-        const response = await lensRequest(
-          HIDE_MANAGED_ACCOUNT_MUTATION,
-          {
-            request,
-          },
-          accessToken,
-        );
-
-        console.log("Hide managed account response:", response);
-        const result: HideManagedAccountResponse = response.value;
-
-        if (result.__typename === "SponsoredTransactionRequest") {
-          const sponsoredTx = result as SponsoredTransactionRequest;
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: null,
-            success: `Managed account hidden! Transaction will be sponsored. Reason: ${sponsoredTx.reason}`,
-          }));
-          return true;
-        } else if (result.__typename === "SelfFundedTransactionRequest") {
-          const selfFundedTx = result as SelfFundedTransactionRequest;
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: null,
-            success: `Managed account hidden! You need to fund the transaction. Reason: ${selfFundedTx.reason}`,
-          }));
-          return true;
-        } else if (result.__typename === "TransactionWillFail") {
-          const failTx = result as TransactionWillFail;
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: `Transaction will fail: ${failTx.reason}`,
-            success: null,
-          }));
-          return false;
-        } else {
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: "Unknown error occurred",
-            success: null,
-          }));
-          return false;
-        }
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to hide managed account";
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: errorMessage,
-          success: null,
-        }));
-        return false;
-      }
-    },
-    [],
-  );
-
-  const unhideManagedAccount = useCallback(
-    async (
-      request: UnhideManagedAccountRequest,
-      accessToken: string,
-    ): Promise<boolean> => {
-      setState((prev) => ({
-        ...prev,
-        loading: true,
-        error: null,
-        success: null,
-      }));
-
-      try {
-        console.log("Unhiding managed account:", request);
-
-        const response = await lensRequest(
-          UNHIDE_MANAGED_ACCOUNT_MUTATION,
-          {
-            request,
-          },
-          accessToken,
-        );
-
-        console.log("Unhide managed account response:", response);
-        const result: UnhideManagedAccountResponse = response.value;
-
-        if (result.__typename === "SponsoredTransactionRequest") {
-          const sponsoredTx = result as SponsoredTransactionRequest;
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: null,
-            success: `Managed account unhidden! Transaction will be sponsored. Reason: ${sponsoredTx.reason}`,
-          }));
-          return true;
-        } else if (result.__typename === "SelfFundedTransactionRequest") {
-          const selfFundedTx = result as SelfFundedTransactionRequest;
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: null,
-            success: `Managed account unhidden! You need to fund the transaction. Reason: ${selfFundedTx.reason}`,
-          }));
-          return true;
-        } else if (result.__typename === "TransactionWillFail") {
-          const failTx = result as TransactionWillFail;
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: `Transaction will fail: ${failTx.reason}`,
-            success: null,
-          }));
-          return false;
-        } else {
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: "Unknown error occurred",
-            success: null,
-          }));
-          return false;
-        }
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Failed to unhide managed account";
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: errorMessage,
-          success: null,
-        }));
-        return false;
-      }
-    },
-    [],
-  );
-
-  const executeTransaction = useCallback(
-    async (
-      transactionRequest:
-        | SponsoredTransactionRequest
-        | SelfFundedTransactionRequest,
-      sendTransaction: (transaction: any) => Promise<string>,
-    ): Promise<boolean> => {
-      setState((prev) => ({
-        ...prev,
-        executingTransaction: true,
-        error: null,
-        success: null,
-      }));
-
-      try {
-        console.log("Executing transaction:", transactionRequest);
-
-        const transactionHash = await sendTransaction(transactionRequest.raw);
-
-        setState((prev) => ({
-          ...prev,
-          executingTransaction: false,
-          transactionHash,
-          success: `Transaction sent successfully! Hash: ${transactionHash}`,
-          error: null,
-        }));
-
-        return true;
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to execute transaction";
-        setState((prev) => ({
-          ...prev,
-          executingTransaction: false,
-          error: errorMessage,
-          success: null,
-          transactionHash: null,
-        }));
-        return false;
-      }
-    },
-    [],
-  );
-
   const clearMessages = useCallback(() => {
     setState((prev) => ({
       ...prev,
@@ -731,11 +448,7 @@ export const useAccountManager = () => {
     removeAccountManager,
     updateAccountManagerPermissions,
     enableSignless,
-    removeSignless,
     fetchAccountManagers,
-    hideManagedAccount,
-    unhideManagedAccount,
-    executeTransaction,
     clearMessages,
   };
 };

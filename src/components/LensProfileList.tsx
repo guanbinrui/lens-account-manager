@@ -41,7 +41,6 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
     addAccountManager,
     removeAccountManager,
     updateAccountManagerPermissions,
-    enableSignless,
     fetchAccountManagers,
     clearMessages,
   } = useAccountManager();
@@ -155,18 +154,6 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
     if (success) {
       setSelectedManagerAddress("");
       setShowPermissionsForm(false);
-      // Refresh the managers list
-      await fetchAccountManagers(authState.tokens.accessToken, {});
-    }
-  };
-
-  const handleEnableSignless = async () => {
-    if (!authState.tokens?.accessToken) {
-      return;
-    }
-
-    const success = await enableSignless(authState.tokens.accessToken);
-    if (success) {
       // Refresh the managers list
       await fetchAccountManagers(authState.tokens.accessToken, {});
     }

@@ -12,7 +12,6 @@ export const AccountManagerLogin: React.FC = () => {
     error: walletError,
     connectMetaMask,
     disconnect,
-    signMessage,
     isMetaMaskInstalled,
   } = useWallet();
 
@@ -87,7 +86,7 @@ export const AccountManagerLogin: React.FC = () => {
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
           Connect Your Wallet
         </h3>
-        
+
         <div className="flex items-center justify-center">
           <button
             onClick={wallet ? disconnect : connectMetaMask}
@@ -187,7 +186,9 @@ export const AccountManagerLogin: React.FC = () => {
           {loadingManagedAccounts ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <span className="ml-3 text-gray-600">Loading managed accounts...</span>
+              <span className="ml-3 text-gray-600">
+                Loading managed accounts...
+              </span>
             </div>
           ) : managedAccountsError ? (
             <div className="text-center py-8">
@@ -218,13 +219,17 @@ export const AccountManagerLogin: React.FC = () => {
                         <img
                           src={profile.metadata.picture.optimized.uri}
                           alt={
-                            profile.metadata?.displayName || profile.handle.localName
+                            profile.metadata?.displayName ||
+                            profile.handle.localName
                           }
                           className="w-12 h-12 rounded-full object-cover"
                         />
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold">
-                          {(profile.metadata?.displayName || profile.handle.localName)
+                          {(
+                            profile.metadata?.displayName ||
+                            profile.handle.localName
+                          )
                             .charAt(0)
                             .toUpperCase()}
                         </div>
@@ -235,7 +240,8 @@ export const AccountManagerLogin: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">
                         <h4 className="text-base font-semibold text-gray-900 truncate">
-                          {profile.metadata?.displayName || profile.handle.localName}
+                          {profile.metadata?.displayName ||
+                            profile.handle.localName}
                         </h4>
                         <span className="text-sm text-gray-500">
                           @{profile.handle.localName}
@@ -250,8 +256,12 @@ export const AccountManagerLogin: React.FC = () => {
 
                       {/* Stats */}
                       <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        <span>{formatNumber(profile.stats.followers)} followers</span>
-                        <span>{formatNumber(profile.stats.following)} following</span>
+                        <span>
+                          {formatNumber(profile.stats.followers)} followers
+                        </span>
+                        <span>
+                          {formatNumber(profile.stats.following)} following
+                        </span>
                         <span>{formatNumber(profile.stats.posts)} posts</span>
                         <span>Created {formatDate(profile.createdAt)}</span>
                       </div>
@@ -260,7 +270,9 @@ export const AccountManagerLogin: React.FC = () => {
                       {profile.isManagedAccount && (
                         <div className="mt-2">
                           <div className="text-xs text-gray-500 mb-1">
-                            <span className="font-medium">Account Manager:</span>{" "}
+                            <span className="font-medium">
+                              Account Manager:
+                            </span>{" "}
                             <span className="font-mono text-gray-700">
                               {profile.accountManagerAddress?.slice(0, 6)}...
                               {profile.accountManagerAddress?.slice(-4)}
@@ -278,7 +290,9 @@ export const AccountManagerLogin: React.FC = () => {
                           e.stopPropagation();
                           handleSignInWithLensProtocol(profile);
                         }}
-                        disabled={isLoading || authState.loading || !isWalletConnected}
+                        disabled={
+                          isLoading || authState.loading || !isWalletConnected
+                        }
                         className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                           isLoading || authState.loading || !isWalletConnected
                             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
@@ -327,14 +341,17 @@ export const AccountManagerLogin: React.FC = () => {
       {/* Error Display */}
       {authState.error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h3 className="text-red-800 font-semibold mb-2">Authentication Error:</h3>
+          <h3 className="text-red-800 font-semibold mb-2">
+            Authentication Error:
+          </h3>
           <p className="text-red-600 text-sm">{authState.error}</p>
         </div>
       )}
 
       <div className="mt-8 text-center text-sm text-gray-500">
         <p>
-          Connect your wallet to sign in as an account manager for Lens Protocol profiles.
+          Connect your wallet to sign in as an account manager for Lens Protocol
+          profiles.
         </p>
       </div>
     </div>

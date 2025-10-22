@@ -14,18 +14,6 @@ import {
   AUTHENTICATE_MUTATION,
 } from "@/lib/lens";
 
-const VERIFY_QUERY = `
-  query Verify {
-    me {
-      loggedInAs {
-        address
-      }
-      isSignless
-      isSponsored
-    }
-  }
-`;
-
 export const useLensAuth = () => {
   const [authState, setAuthState] = useState<LensAuthState>({
     isAuthenticated: false,
@@ -54,19 +42,21 @@ export const useLensAuth = () => {
 
         // Step 1: Get challenge using the new API format
         // Using the official Lens Protocol test app for mainnet
-        const challengeRequest: ChallengeRequest = isAccountManager ? {
-          accountManager: {
-            account: profile.id,
-            app: "0x8A5Cc31180c37078e1EbA2A23c861Acf351a97cE",
-            manager: walletAddress,
-          },
-        } : {
-          accountOwner: {
-            account: profile.id, // Use the profile's account address
-            app: "0x8A5Cc31180c37078e1EbA2A23c861Acf351a97cE", // Official Lens test app for mainnet
-            owner: walletAddress, // The wallet owner
-          },
-        };
+        const challengeRequest: ChallengeRequest = isAccountManager
+          ? {
+              accountManager: {
+                account: profile.id,
+                app: "0x8A5Cc31180c37078e1EbA2A23c861Acf351a97cE",
+                manager: walletAddress,
+              },
+            }
+          : {
+              accountOwner: {
+                account: profile.id, // Use the profile's account address
+                app: "0x8A5Cc31180c37078e1EbA2A23c861Acf351a97cE", // Official Lens test app for mainnet
+                owner: walletAddress, // The wallet owner
+              },
+            };
 
         console.log("Challenge request:", challengeRequest);
         const challengeResponse = await lensRequest(CHALLENGE_QUERY, {
@@ -160,89 +150,13 @@ export const useLensAuth = () => {
     });
   }, []);
 
-  const checkAuthStatus = useCallback(async () => {
-    const accessToken = localStorage.getItem("lens_access_token");
-    const refreshToken = localStorage.getItem("lens_refresh_token");
-
-    if (!accessToken || !refreshToken) {
-      return false;
-    }
-
-    try {
-      // Verify the token is still valid
-      const headers = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      };
-
-      const response = await fetch("https://api.lens.xyz/graphql", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          query: VERIFY_QUERY,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.data?.me?.loggedInAs) {
-        setAuthState((prev) => ({
-          ...prev,
-          isAuthenticated: true,
-          tokens: { accessToken, refreshToken },
-        }));
-        return true;
-      }
-    } catch (err) {
-      console.error("Auth verification failed:", err);
-    }
-
-    return false;
-  }, []);
-
-  // Resume session from stored tokens
-  const resumeSession = useCallback(async () => {
-    const accessToken = localStorage.getItem("lens_access_token");
-    const refreshToken = localStorage.getItem("lens_refresh_token");
-    
-    if (!accessToken || !refreshToken) {
-      return false;
-    }
-
-    try {
-      // Verify the session is still valid by making a test request
-      const verifyResponse = await lensRequest(VERIFY_QUERY, {});
-      
-      if (verifyResponse.me?.loggedInAs?.address) {
-        setAuthState({
-          isAuthenticated: true,
-          profile: null, // We don't store the full profile in localStorage
-          tokens: {
-            accessToken,
-            refreshToken,
-          },
-          loading: false,
-          error: null,
-        });
-        return true;
-      }
-    } catch (error) {
-      console.error("Failed to resume session:", error);
-      // Clear invalid tokens
-      localStorage.removeItem("lens_access_token");
-      localStorage.removeItem("lens_refresh_token");
-    }
-    
-    return false;
-  }, []);
-
   // Logout method to clear session and tokens
   const logout = useCallback(async () => {
     try {
       // Clear stored tokens
       localStorage.removeItem("lens_access_token");
       localStorage.removeItem("lens_refresh_token");
-      
+
       // Reset auth state
       setAuthState({
         isAuthenticated: false,
@@ -251,7 +165,7 @@ export const useLensAuth = () => {
         loading: false,
         error: null,
       });
-      
+
       console.log("Lens user logged out successfully");
       return true;
     } catch (error) {
@@ -265,7 +179,5 @@ export const useLensAuth = () => {
     signInWithLens,
     signOut,
     logout, // New logout method
-    resumeSession, // New session resume method
-    checkAuthStatus,
   };
 };

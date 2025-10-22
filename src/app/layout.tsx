@@ -15,7 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Web3 Wallet Connector",
-  description: "Connect and manage MetaMask and Phantom wallets",
+  description:
+    "Connect and manage MetaMask wallet with Lens Protocol integration",
 };
 
 export default function RootLayout({
