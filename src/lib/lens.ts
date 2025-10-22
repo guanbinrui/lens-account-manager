@@ -1,11 +1,13 @@
-import { LensConfig, development } from '@lens-protocol/react-web';
-import { bindings as wagmiBindings } from '@lens-protocol/wagmi';
-import { createConfig, http } from 'wagmi';
-import { mainnet, polygon } from 'wagmi/chains';
+import { LensConfig, development } from "@lens-protocol/react-web";
+import { bindings as wagmiBindings } from "@lens-protocol/wagmi";
+import { createConfig, http } from "wagmi";
+import { mainnet, polygon } from "wagmi/chains";
+import { metaMask } from "wagmi/connectors";
 
 // Create a minimal wagmi config for Lens Protocol bindings
-const wagmiConfig = createConfig({
+export const wagmiConfig = createConfig({
   chains: [mainnet, polygon],
+  connectors: [metaMask()],
   transports: {
     [mainnet.id]: http(),
     [polygon.id]: http(),
@@ -18,7 +20,7 @@ export const lensConfig: LensConfig = {
 };
 
 // Lens GraphQL API endpoint
-export const LENS_API_URL = 'https://api.lens.xyz/graphql';
+export const LENS_API_URL = "https://api.lens.xyz/graphql";
 
 // GraphQL queries for Lens Protocol
 export const ACCOUNTS_AVAILABLE_QUERY = `
@@ -510,9 +512,9 @@ export const GET_PROFILE_DETAILS = `
 
 // Helper function to make GraphQL requests
 export const lensRequest = async (
-  query: string, 
+  query: string,
   variables: Record<string, unknown> = {},
-  accessToken?: string
+  accessToken?: string,
 ) => {
   try {
     const requestBody: any = {
@@ -521,61 +523,64 @@ export const lensRequest = async (
     };
 
     // Add operationName for authenticate mutation to match the working curl request
-    if (query.includes('mutation Authenticate')) {
-      requestBody.operationName = 'Authenticate';
+    if (query.includes("mutation Authenticate")) {
+      requestBody.operationName = "Authenticate";
     }
 
-    console.log('Lens API Request:', {
+    console.log("Lens API Request:", {
       url: LENS_API_URL,
       body: requestBody,
       hasAuth: !!accessToken,
     });
 
     const headers: Record<string, string> = {
-      'accept': 'application/graphql-response+json, application/graphql+json, application/json, text/event-stream, multipart/mixed',
-      'accept-language': 'en,zh-CN;q=0.9,zh;q=0.8',
-      'cache-control': 'no-cache',
-      'content-type': 'application/json',
-      'origin': 'https://firefly.social',
-      'pragma': 'no-cache',
-      'priority': 'u=1, i',
-      'referer': 'https://firefly.social/',
-      'sec-ch-ua': '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
-      'sec-ch-ua-mobile': '?0',
-      'sec-ch-ua-platform': '"macOS"',
-      'sec-fetch-dest': 'empty',
-      'sec-fetch-mode': 'cors',
-      'sec-fetch-site': 'cross-site',
-      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+      accept:
+        "application/graphql-response+json, application/graphql+json, application/json, text/event-stream, multipart/mixed",
+      "accept-language": "en,zh-CN;q=0.9,zh;q=0.8",
+      "cache-control": "no-cache",
+      "content-type": "application/json",
+      origin: "https://firefly.social",
+      pragma: "no-cache",
+      priority: "u=1, i",
+      referer: "https://firefly.social/",
+      "sec-ch-ua":
+        '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": '"macOS"',
+      "sec-fetch-dest": "empty",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-site": "cross-site",
+      "user-agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
     };
 
     // Add authorization header if access token is provided
     if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
+      headers["Authorization"] = `Bearer ${accessToken}`;
     }
 
     const response = await fetch(LENS_API_URL, {
-      method: 'POST',
+      method: "POST",
       headers,
       body: JSON.stringify(requestBody),
     });
 
     const result = await response.json();
-    
-    console.log('Lens API Response:', {
+
+    console.log("Lens API Response:", {
       status: response.status,
       statusText: response.statusText,
       data: result,
     });
-    
+
     if (result.errors) {
-      console.error('Lens API Errors:', result.errors);
-      throw new Error(result.errors[0]?.message || 'GraphQL Error');
+      console.error("Lens API Errors:", result.errors);
+      throw new Error(result.errors[0]?.message || "GraphQL Error");
     }
 
     return result.data;
   } catch (error) {
-    console.error('Lens API Error:', error);
+    console.error("Lens API Error:", error);
     throw error;
   }
 };

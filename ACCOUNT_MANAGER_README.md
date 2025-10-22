@@ -5,20 +5,24 @@ This implementation provides comprehensive account manager functionality for Len
 ## Features Implemented
 
 ### 1. Account Manager Management
+
 - **Add Account Manager**: Delegate social operations to an EVM address
 - **Remove Account Manager**: Revoke manager permissions
 - **Update Permissions**: Modify what operations a manager can perform
 - **List Account Managers**: View all current account managers and their permissions
 
 ### 2. Signless Experience
+
 - **Enable Signless**: Set up Lens API as account manager for seamless social interactions
 - **Remove Signless**: Disable the signless experience
 
 ### 3. Account Visibility Management
+
 - **Hide Managed Account**: Hide accounts from the available accounts list
 - **Unhide Managed Account**: Restore hidden accounts to the list
 
 ### 4. Transaction Handling
+
 - **Sponsored Transactions**: Handle EIP-712 transactions sponsored by Lens Protocol
 - **Self-Funded Transactions**: Handle EIP-1559 transactions requiring user funding
 - **Transaction Confirmation**: Wait for transaction confirmation and provide status updates
@@ -46,15 +50,18 @@ The following permissions can be granted to account managers:
 ### Adding an Account Manager
 
 ```typescript
-const success = await addAccountManager({
-  address: "0x1234...", // Ethereum address
-  permissions: {
-    canExecuteTransactions: true,
-    canSetMetadataUri: true,
-    canTransferNative: false, // Recommended: keep false for security
-    canTransferTokens: false, // Recommended: keep false for security
-  }
-}, accessToken);
+const success = await addAccountManager(
+  {
+    address: "0x1234...", // Ethereum address
+    permissions: {
+      canExecuteTransactions: true,
+      canSetMetadataUri: true,
+      canTransferNative: false, // Recommended: keep false for security
+      canTransferTokens: false, // Recommended: keep false for security
+    },
+  },
+  accessToken,
+);
 ```
 
 ### Enabling Signless Experience
@@ -67,21 +74,24 @@ const success = await enableSignless(accessToken);
 
 ```typescript
 const managers = await fetchAccountManagers(accessToken);
-console.log('Current managers:', managers);
+console.log("Current managers:", managers);
 ```
 
 ### Updating Manager Permissions
 
 ```typescript
-const success = await updateAccountManagerPermissions({
-  address: "0x1234...",
-  permissions: {
-    canExecuteTransactions: true,
-    canSetMetadataUri: false,
-    canTransferNative: false,
-    canTransferTokens: false,
-  }
-}, accessToken);
+const success = await updateAccountManagerPermissions(
+  {
+    address: "0x1234...",
+    permissions: {
+      canExecuteTransactions: true,
+      canSetMetadataUri: false,
+      canTransferNative: false,
+      canTransferTokens: false,
+    },
+  },
+  accessToken,
+);
 ```
 
 ## Transaction Flow
@@ -92,11 +102,13 @@ const success = await updateAccountManagerPermissions({
 4. **Confirmation**: Wait for blockchain confirmation
 
 ### Sponsored Transactions
+
 - No gas fees required
 - Handled by Lens Protocol
 - Use EIP-712 signing
 
 ### Self-Funded Transactions
+
 - User pays gas fees
 - Standard EIP-1559 transactions
 - Requires sufficient ETH balance
@@ -133,9 +145,11 @@ This implementation integrates seamlessly with the existing Lens Protocol authen
 ## Files Modified/Created
 
 ### New Files
+
 - `src/lib/transactionHandler.ts` - Transaction execution utilities
 
 ### Modified Files
+
 - `src/types/lens.ts` - Added account manager types
 - `src/lib/lens.ts` - Added GraphQL queries and mutations
 - `src/hooks/useAccountManager.ts` - Enhanced with all account manager functions

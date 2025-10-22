@@ -161,7 +161,11 @@ export interface ForbiddenError {
   reason: string;
 }
 
-export type AuthenticationResult = AuthenticationTokens | WrongSignerError | ExpiredChallengeError | ForbiddenError;
+export type AuthenticationResult =
+  | AuthenticationTokens
+  | WrongSignerError
+  | ExpiredChallengeError
+  | ForbiddenError;
 
 export interface ChallengeRequest {
   accountOwner: {
@@ -332,39 +336,54 @@ export interface Eip1559TransactionRequest {
 }
 
 export interface SponsoredTransactionRequest {
-  __typename: 'SponsoredTransactionRequest';
+  __typename: "SponsoredTransactionRequest";
   raw: Eip712TransactionRequest;
   reason: string;
   sponsoredReason: string;
 }
 
 export interface SelfFundedTransactionRequest {
-  __typename: 'SelfFundedTransactionRequest';
+  __typename: "SelfFundedTransactionRequest";
   raw: Eip1559TransactionRequest;
   reason: string;
   selfFundedReason: string;
 }
 
 export interface TransactionWillFail {
-  __typename: 'TransactionWillFail';
+  __typename: "TransactionWillFail";
   reason: string;
 }
 
-export type AddAccountManagerResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
-export type RemoveAccountManagerResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
-export type UpdateAccountManagerPermissionsResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
+export type AddAccountManagerResponse =
+  | SponsoredTransactionRequest
+  | SelfFundedTransactionRequest
+  | TransactionWillFail;
+export type RemoveAccountManagerResponse =
+  | SponsoredTransactionRequest
+  | SelfFundedTransactionRequest
+  | TransactionWillFail;
+export type UpdateAccountManagerPermissionsResponse =
+  | SponsoredTransactionRequest
+  | SelfFundedTransactionRequest
+  | TransactionWillFail;
 
 // Signless Experience Types
 export interface EnableSignlessRequest {
-  // No additional parameters needed
+  readonly _type: "EnableSignlessRequest";
 }
 
 export interface RemoveSignlessRequest {
-  // No additional parameters needed
+  readonly _type: "RemoveSignlessRequest";
 }
 
-export type EnableSignlessResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
-export type RemoveSignlessResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
+export type EnableSignlessResponse =
+  | SponsoredTransactionRequest
+  | SelfFundedTransactionRequest
+  | TransactionWillFail;
+export type RemoveSignlessResponse =
+  | SponsoredTransactionRequest
+  | SelfFundedTransactionRequest
+  | TransactionWillFail;
 
 // Account Manager Listing Types
 export interface AccountManagersRequest {
@@ -396,5 +415,11 @@ export interface UnhideManagedAccountRequest {
   account: string;
 }
 
-export type HideManagedAccountResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
-export type UnhideManagedAccountResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
+export type HideManagedAccountResponse =
+  | SponsoredTransactionRequest
+  | SelfFundedTransactionRequest
+  | TransactionWillFail;
+export type UnhideManagedAccountResponse =
+  | SponsoredTransactionRequest
+  | SelfFundedTransactionRequest
+  | TransactionWillFail;

@@ -1,9 +1,9 @@
-import { 
-  SponsoredTransactionRequest, 
+import {
+  SponsoredTransactionRequest,
   SelfFundedTransactionRequest,
   Eip712TransactionRequest,
-  Eip1559TransactionRequest 
-} from '@/types/lens';
+  Eip1559TransactionRequest,
+} from "@/types/lens";
 
 // Transaction handling utilities for Lens Protocol account manager operations
 // Based on the Lens Protocol documentation: https://lens.xyz/docs/protocol/accounts/manager
@@ -20,13 +20,13 @@ export interface TransactionResult {
  */
 export const handleSponsoredTransaction = async (
   transactionRequest: SponsoredTransactionRequest,
-  walletClient: any // This would be from wagmi or ethers
+  walletClient: any, // This would be from wagmi or ethers
 ): Promise<TransactionResult> => {
   try {
-    console.log('Handling sponsored transaction:', transactionRequest);
-    
+    console.log("Handling sponsored transaction:", transactionRequest);
+
     const { raw } = transactionRequest;
-    
+
     // For sponsored transactions, we need to sign the EIP-712 transaction
     // The wallet client should handle the signing process
     const txHash = await walletClient.sendTransaction({
@@ -43,17 +43,17 @@ export const handleSponsoredTransaction = async (
       customData: raw.customData,
     });
 
-    console.log('Sponsored transaction sent:', txHash);
-    
+    console.log("Sponsored transaction sent:", txHash);
+
     return {
       success: true,
       transactionHash: txHash,
     };
   } catch (error) {
-    console.error('Error handling sponsored transaction:', error);
+    console.error("Error handling sponsored transaction:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 };
@@ -64,13 +64,13 @@ export const handleSponsoredTransaction = async (
  */
 export const handleSelfFundedTransaction = async (
   transactionRequest: SelfFundedTransactionRequest,
-  walletClient: any // This would be from wagmi or ethers
+  walletClient: any, // This would be from wagmi or ethers
 ): Promise<TransactionResult> => {
   try {
-    console.log('Handling self-funded transaction:', transactionRequest);
-    
+    console.log("Handling self-funded transaction:", transactionRequest);
+
     const { raw } = transactionRequest;
-    
+
     // For self-funded transactions, we need to send a regular EIP-1559 transaction
     const txHash = await walletClient.sendTransaction({
       to: raw.to,
@@ -83,17 +83,17 @@ export const handleSelfFundedTransaction = async (
       chainId: raw.chainId,
     });
 
-    console.log('Self-funded transaction sent:', txHash);
-    
+    console.log("Self-funded transaction sent:", txHash);
+
     return {
       success: true,
       transactionHash: txHash,
     };
   } catch (error) {
-    console.error('Error handling self-funded transaction:', error);
+    console.error("Error handling self-funded transaction:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 };
@@ -102,17 +102,19 @@ export const handleSelfFundedTransaction = async (
  * Generic transaction handler that determines the type and routes accordingly
  */
 export const handleTransaction = async (
-  transactionRequest: SponsoredTransactionRequest | SelfFundedTransactionRequest,
-  walletClient: any
+  transactionRequest:
+    | SponsoredTransactionRequest
+    | SelfFundedTransactionRequest,
+  walletClient: any,
 ): Promise<TransactionResult> => {
-  if (transactionRequest.__typename === 'SponsoredTransactionRequest') {
+  if (transactionRequest.__typename === "SponsoredTransactionRequest") {
     return handleSponsoredTransaction(transactionRequest, walletClient);
-  } else if (transactionRequest.__typename === 'SelfFundedTransactionRequest') {
+  } else if (transactionRequest.__typename === "SelfFundedTransactionRequest") {
     return handleSelfFundedTransaction(transactionRequest, walletClient);
   } else {
     return {
       success: false,
-      error: 'Unknown transaction type',
+      error: "Unknown transaction type",
     };
   }
 };
@@ -123,27 +125,27 @@ export const handleTransaction = async (
 export const waitForTransaction = async (
   transactionHash: string,
   walletClient: any,
-  confirmations: number = 1
+  confirmations: number = 1,
 ): Promise<TransactionResult> => {
   try {
-    console.log('Waiting for transaction confirmation:', transactionHash);
-    
+    console.log("Waiting for transaction confirmation:", transactionHash);
+
     const receipt = await walletClient.waitForTransactionReceipt({
       hash: transactionHash,
       confirmations,
     });
 
-    console.log('Transaction confirmed:', receipt);
-    
+    console.log("Transaction confirmed:", receipt);
+
     return {
       success: true,
       transactionHash: receipt.transactionHash,
     };
   } catch (error) {
-    console.error('Error waiting for transaction:', error);
+    console.error("Error waiting for transaction:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 };
@@ -152,30 +154,38 @@ export const waitForTransaction = async (
  * Complete transaction flow: send and wait for confirmation
  */
 export const executeTransaction = async (
-  transactionRequest: SponsoredTransactionRequest | SelfFundedTransactionRequest,
+  transactionRequest:
+    | SponsoredTransactionRequest
+    | SelfFundedTransactionRequest,
   walletClient: any,
-  waitForConfirmation: boolean = true
+  waitForConfirmation: boolean = true,
 ): Promise<TransactionResult> => {
   try {
     // First, send the transaction
-    const sendResult = await handleTransaction(transactionRequest, walletClient);
-    
+    const sendResult = await handleTransaction(
+      transactionRequest,
+      walletClient,
+    );
+
     if (!sendResult.success || !sendResult.transactionHash) {
       return sendResult;
     }
 
     // If requested, wait for confirmation
     if (waitForConfirmation) {
-      const confirmResult = await waitForTransaction(sendResult.transactionHash, walletClient);
+      const confirmResult = await waitForTransaction(
+        sendResult.transactionHash,
+        walletClient,
+      );
       return confirmResult;
     }
 
     return sendResult;
   } catch (error) {
-    console.error('Error executing transaction:', error);
+    console.error("Error executing transaction:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 };

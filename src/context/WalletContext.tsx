@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useEthereumWallet } from '@/hooks/useEthereumWallet';
-import { ConnectedWallet } from '@/types/wallet';
+import React, { createContext, useContext, ReactNode } from "react";
+import { useEthereumWallet } from "@/hooks/useEthereumWallet";
+import { ConnectedWallet } from "@/types/wallet";
 
 interface WalletContextType {
   // Ethereum wallet
@@ -31,7 +31,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     disconnect,
     getBalance,
     signMessage,
-    isMetaMaskInstalled
+    isMetaMaskInstalled,
   } = useEthereumWallet();
 
   const value: WalletContextType = {
@@ -42,20 +42,18 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     disconnect,
     getBalance,
     signMessage,
-    isMetaMaskInstalled
+    isMetaMaskInstalled,
   };
 
   return (
-    <WalletContext.Provider value={value}>
-      {children}
-    </WalletContext.Provider>
+    <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
   );
 };
 
 export const useWallet = () => {
   const context = useContext(WalletContext);
   if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
+    throw new Error("useWallet must be used within a WalletProvider");
   }
   return context;
 };

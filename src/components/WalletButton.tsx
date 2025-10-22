@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 interface WalletButtonProps {
   walletName: string;
@@ -21,7 +21,7 @@ export const WalletButton: React.FC<WalletButtonProps> = ({
   isConnected,
   onClick,
   address,
-  balance
+  balance,
 }) => {
   const [isClient, setIsClient] = useState(false);
 
@@ -40,20 +40,20 @@ export const WalletButton: React.FC<WalletButtonProps> = ({
   const getButtonText = () => {
     if (!isClient) return `Connect ${walletName}`; // Default state during SSR
     if (!isInstalled) return `Install ${walletName}`;
-    if (isConnecting) return 'Connecting...';
+    if (isConnecting) return "Connecting...";
     if (isConnected) return `Connected to ${walletName}`;
     return `Connect ${walletName}`;
   };
 
   const getButtonStyle = () => {
-    if (!isClient) return 'bg-blue-500 hover:bg-blue-600'; // Default state during SSR
-    if (!isInstalled) return 'bg-gray-400 cursor-not-allowed';
-    if (isConnecting) return 'bg-blue-400 cursor-wait';
-    if (isConnected) return 'bg-green-500 hover:bg-green-600';
-    return 'bg-blue-500 hover:bg-blue-600';
+    if (!isClient) return "bg-blue-500 hover:bg-blue-600"; // Default state during SSR
+    if (!isInstalled) return "bg-gray-400 cursor-not-allowed";
+    if (isConnecting) return "bg-blue-400 cursor-wait";
+    if (isConnected) return "bg-green-500 hover:bg-green-600";
+    return "bg-blue-500 hover:bg-blue-600";
   };
 
-  const isDisabled = !isClient ? false : (!isInstalled || isConnecting);
+  const isDisabled = !isClient ? false : !isInstalled || isConnecting;
 
   return (
     <div className="p-4 border rounded-lg shadow-sm bg-white">
@@ -64,7 +64,7 @@ export const WalletButton: React.FC<WalletButtonProps> = ({
           ETHEREUM
         </span>
       </div>
-      
+
       <button
         onClick={onClick}
         disabled={isDisabled}
@@ -82,9 +82,7 @@ export const WalletButton: React.FC<WalletButtonProps> = ({
           {balance !== undefined && (
             <div className="flex justify-between mt-1">
               <span>Balance:</span>
-              <span className="font-mono">
-                {formatBalance(balance)} ETH
-              </span>
+              <span className="font-mono">{formatBalance(balance)} ETH</span>
             </div>
           )}
         </div>

@@ -1,12 +1,11 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useWallet } from '@/context/WalletContext';
-import { WalletButton } from './WalletButton';
-import { LensProfileList } from './LensProfileList';
-import { useLensProfiles } from '@/hooks/useLensProfiles';
-import { useLensAuth } from '@/hooks/useLensAuth';
-import { LensProfile } from '@/types/lens';
+import React from "react";
+import { useWallet } from "@/context/WalletContext";
+import { WalletButton } from "./WalletButton";
+import { LensProfileList } from "./LensProfileList";
+import { useLensProfiles } from "@/hooks/useLensProfiles";
+import { useLensAuth } from "@/hooks/useLensAuth";
 
 export const WalletDashboard: React.FC = () => {
   const {
@@ -16,35 +15,23 @@ export const WalletDashboard: React.FC = () => {
     connectMetaMask,
     disconnect,
     getBalance,
-    signMessage,
-    isMetaMaskInstalled
+    isMetaMaskInstalled,
   } = useWallet();
 
   // Lens hooks
-  const { profiles, loading: profilesLoading, error: profilesError } = useLensProfiles(wallet?.address || null);
-  const { authState, signInWithLens } = useLensAuth();
+  const {
+    profiles,
+    loading: profilesLoading,
+    error: profilesError,
+  } = useLensProfiles(wallet?.address || null);
+  const { authState } = useLensAuth();
 
   const refreshBalance = async () => {
     await getBalance();
   };
 
-  const handleSignInWithLens = async (profile: LensProfile) => {
-    if (!wallet?.address) {
-      return;
-    }
-
-    try {
-      await signInWithLens(profile, wallet.address, signMessage);
-    } catch (err) {
-      console.error('Failed to sign in with Lens:', err);
-    }
-  };
-
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-        MetaMask & Lens Protocol
-      </h1>
+    <div>
 
       {/* Wallet Connection Section */}
       <div className="mb-8">
@@ -72,12 +59,22 @@ export const WalletDashboard: React.FC = () => {
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center">
             <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center mr-3">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="w-5 h-5 text-white"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <div>
-              <h3 className="text-green-800 font-semibold">Signed in to Lens Protocol</h3>
+              <h3 className="text-green-800 font-semibold">
+                Signed in to Lens Protocol
+              </h3>
               <p className="text-green-600 text-sm">
                 Connected as @{authState.profile.handle.localName}
               </p>
@@ -93,7 +90,7 @@ export const WalletDashboard: React.FC = () => {
             <h2 className="text-lg font-semibold text-green-800 mb-4">
               Connected Wallet
             </h2>
-            
+
             <div className="bg-white p-4 rounded border mb-4">
               <div className="flex justify-between items-center">
                 <div>
@@ -131,11 +128,6 @@ export const WalletDashboard: React.FC = () => {
             profiles={profiles}
             loading={profilesLoading}
             error={profilesError}
-            onSignIn={handleSignInWithLens}
-            isAuthenticated={authState.isAuthenticated}
-            authProfile={authState.profile}
-            authLoading={authState.loading}
-            accessToken={authState.tokens?.accessToken}
           />
         </div>
       )}
@@ -157,7 +149,8 @@ export const WalletDashboard: React.FC = () => {
 
       <div className="mt-8 text-center text-sm text-gray-500">
         <p>
-          Connect your MetaMask wallet to discover and sign in to your Lens Protocol profiles.
+          Connect your MetaMask wallet to discover and sign in to your Lens
+          Protocol profiles.
         </p>
       </div>
     </div>
