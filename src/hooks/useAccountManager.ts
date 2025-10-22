@@ -40,6 +40,8 @@ interface AccountManagerState {
   accountManagers: AccountManager[];
   managersLoading: boolean;
   managersError: string | null;
+  transactionHash: string | null;
+  executingTransaction: boolean;
 }
 
 export const useAccountManager = () => {
@@ -50,11 +52,14 @@ export const useAccountManager = () => {
     accountManagers: [],
     managersLoading: false,
     managersError: null,
+    transactionHash: null,
+    executingTransaction: false,
   });
 
   const addAccountManager = useCallback(async (
     request: AddAccountManagerRequest,
-    accessToken: string
+    accessToken: string,
+    sendTransaction?: (transaction: any) => Promise<string>
   ): Promise<boolean> => {
     setState(prev => ({ ...prev, loading: true, error: null, success: null }));
 
@@ -70,13 +75,41 @@ export const useAccountManager = () => {
 
       if (result.__typename === 'SponsoredTransactionRequest') {
         const sponsoredTx = result as SponsoredTransactionRequest;
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: null,
-          success: `Account manager request created! Transaction will be sponsored. Reason: ${sponsoredTx.reason}`,
-        }));
-        return true;
+        
+        // If sendTransaction is provided, automatically execute the transaction
+        if (sendTransaction) {
+          try {
+            console.log('Sponsored transaction data:', sponsoredTx.raw);
+            setState(prev => ({ ...prev, executingTransaction: true }));
+            const txHash = await sendTransaction(sponsoredTx.raw);
+            setState(prev => ({
+              ...prev,
+              loading: false,
+              executingTransaction: false,
+              transactionHash: txHash,
+              success: `Account manager added successfully! Transaction hash: ${txHash}`,
+              error: null,
+            }));
+            return true;
+          } catch (txError) {
+            setState(prev => ({
+              ...prev,
+              loading: false,
+              executingTransaction: false,
+              error: `Transaction failed: ${txError instanceof Error ? txError.message : 'Unknown error'}`,
+              success: null,
+            }));
+            return false;
+          }
+        } else {
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            error: null,
+            success: `Account manager request created! Transaction will be sponsored. Reason: ${sponsoredTx.reason}`,
+          }));
+          return true;
+        }
       } else if (result.__typename === 'SelfFundedTransactionRequest') {
         const selfFundedTx = result as SelfFundedTransactionRequest;
         setState(prev => ({
@@ -528,8 +561,41 @@ export const useAccountManager = () => {
     }
   }, []);
 
+  const executeTransaction = useCallback(async (
+    transactionRequest: SponsoredTransactionRequest | SelfFundedTransactionRequest,
+    sendTransaction: (transaction: any) => Promise<string>
+  ): Promise<boolean> => {
+    setState(prev => ({ ...prev, executingTransaction: true, error: null, success: null }));
+
+    try {
+      console.log('Executing transaction:', transactionRequest);
+      
+      const transactionHash = await sendTransaction(transactionRequest.raw);
+      
+      setState(prev => ({
+        ...prev,
+        executingTransaction: false,
+        transactionHash,
+        success: `Transaction sent successfully! Hash: ${transactionHash}`,
+        error: null,
+      }));
+      
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to execute transaction';
+      setState(prev => ({
+        ...prev,
+        executingTransaction: false,
+        error: errorMessage,
+        success: null,
+        transactionHash: null,
+      }));
+      return false;
+    }
+  }, []);
+
   const clearMessages = useCallback(() => {
-    setState(prev => ({ ...prev, error: null, success: null }));
+    setState(prev => ({ ...prev, error: null, success: null, transactionHash: null }));
   }, []);
 
   return {
@@ -542,6 +608,7 @@ export const useAccountManager = () => {
     fetchAccountManagers,
     hideManagedAccount,
     unhideManagedAccount,
+    executeTransaction,
     clearMessages,
   };
 };

@@ -18,7 +18,7 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
   error,
 }) => {
   const { authState, signInWithLens, signOut } = useLensAuth();
-  const { wallet, signMessage } = useEthereumWallet();
+  const { wallet, signMessage, sendTransaction } = useEthereumWallet();
   const [managerAddress, setManagerAddress] = useState('');
   const [showManagerForm, setShowManagerForm] = useState(false);
   const [selectedManagerAddress, setSelectedManagerAddress] = useState('');
@@ -36,11 +36,14 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
     accountManagers,
     managersLoading,
     managersError,
+    transactionHash,
+    executingTransaction,
     addAccountManager,
     removeAccountManager,
     updateAccountManagerPermissions,
     enableSignless,
     fetchAccountManagers,
+    executeTransaction,
     clearMessages 
   } = useAccountManager();
 
@@ -66,7 +69,7 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
   const handleAddManager = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!managerAddress.trim() || !authState.tokens?.accessToken) {
+    if (!managerAddress.trim() || !authState.tokens?.accessToken || !sendTransaction) {
       return;
     }
 
@@ -75,21 +78,33 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
       return;
     }
 
-    const success = await addAccountManager({
-      address: managerAddress.trim(),
-      permissions: {
-        canExecuteTransactions: true,
-        canSetMetadataUri: true,
-        canTransferNative: false,
-        canTransferTokens: false,
-      }
-    }, authState.tokens.accessToken);
+    try {
+      // First, create the account manager request
+      const success = await addAccountManager({
+        address: managerAddress.trim(),
+        permissions: {
+          canExecuteTransactions: true,
+          canSetMetadataUri: true,
+          canTransferNative: false,
+          canTransferTokens: false,
+        }
+      }, authState.tokens.accessToken, sendTransaction);
 
-    if (success) {
-      setManagerAddress('');
-      setShowManagerForm(false);
-      // Refresh the managers list
-      await fetchAccountManagers(authState.tokens.accessToken, {});
+      // If the request was successful, it means we got a transaction to execute
+      if (success) {
+        // The transaction execution will be handled by the useAccountManager hook
+        // and the success/error states will be updated automatically
+        setManagerAddress('');
+        setShowManagerForm(false);
+        // Refresh the managers list after a short delay to allow transaction processing
+        setTimeout(async () => {
+          if (authState.tokens?.accessToken) {
+            await fetchAccountManagers(authState.tokens.accessToken, {});
+          }
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error adding account manager:', error);
     }
   };
 
@@ -478,6 +493,31 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
                   <p className="text-green-700 text-sm">{managerSuccess}</p>
                 </div>
               )}
+
+              {transactionHash && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-blue-700 text-sm">
+                    Transaction sent! Hash: {transactionHash.slice(0, 10)}...
+                  </p>
+                  <a
+                    href={`https://explorer.zksync.io/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-xs"
+                  >
+                    View on Explorer
+                  </a>
+                </div>
+              )}
+
+              {executingTransaction && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-500 mr-2"></div>
+                    <p className="text-yellow-700 text-sm">Executing transaction...</p>
+                  </div>
+                </div>
+              )}
             </form>
           </div>
         </div>
@@ -696,6 +736,31 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
               {managerSuccess && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                   <p className="text-green-700 text-sm">{managerSuccess}</p>
+                </div>
+              )}
+
+              {transactionHash && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-blue-700 text-sm">
+                    Transaction sent! Hash: {transactionHash.slice(0, 10)}...
+                  </p>
+                  <a
+                    href={`https://explorer.zksync.io/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-xs"
+                  >
+                    View on Explorer
+                  </a>
+                </div>
+              )}
+
+              {executingTransaction && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-500 mr-2"></div>
+                    <p className="text-yellow-700 text-sm">Executing transaction...</p>
+                  </div>
                 </div>
               )}
             </form>
