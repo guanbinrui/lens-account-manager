@@ -1,22 +1,40 @@
-import { LensConfig, development } from "@lens-protocol/react-web";
+import { LensConfig, production, mainnet, polygon } from "@lens-protocol/react-web";
 import { bindings as wagmiBindings } from "@lens-protocol/wagmi";
 import { createConfig, http } from "wagmi";
-import { mainnet, polygon } from "wagmi/chains";
-import { metaMask } from "wagmi/connectors";
+import { mainnet as wagmiMainnet, polygon as wagmiPolygon } from "wagmi/chains";
+import { ChainType, URL } from "@lens-protocol/shared-kernel";
+
+// Create a custom environment configuration that uses the correct API endpoint
+const customProductionEnvironment = {
+  name: 'production',
+  backend: 'https://api.lens.xyz/graphql' as URL,
+  chains: {
+    [ChainType.ETHEREUM]: mainnet,
+    [ChainType.POLYGON]: polygon,
+  },
+  timings: {
+    pollingInterval: 3000,
+    maxIndexingWaitTime: 120000,
+    maxMiningWaitTime: 60000
+  },
+  contracts: {
+    permissionlessCreator: '0x0b5e6100243f793e480DE6088dE6bA70aA9f3872'
+  },
+  handleResolver: (localName: string) => `lens/${localName}`,
+};
 
 // Create a minimal wagmi config for Lens Protocol bindings
-export const wagmiConfig = createConfig({
-  chains: [mainnet, polygon],
-  connectors: [metaMask()],
+const wagmiConfig = createConfig({
+  chains: [wagmiMainnet, wagmiPolygon],
   transports: {
-    [mainnet.id]: http(),
-    [polygon.id]: http(),
+    [wagmiMainnet.id]: http(),
+    [wagmiPolygon.id]: http(),
   },
 });
 
 export const lensConfig: LensConfig = {
   bindings: wagmiBindings(wagmiConfig),
-  environment: development,
+  environment: customProductionEnvironment,
 };
 
 // Lens GraphQL API endpoint
@@ -187,7 +205,7 @@ export const ACCOUNTS_AVAILABLE_QUERY = `
 // Authentication queries and mutations
 export const CHALLENGE_QUERY = `
   mutation Challenge($request: ChallengeRequest!) {
-    value: challenge(request: $request) {
+    challenge(request: $request) {
       ...AuthenticationChallenge
     }
   }
@@ -200,7 +218,7 @@ export const CHALLENGE_QUERY = `
 
 export const AUTHENTICATE_MUTATION = `
   mutation Authenticate($request: SignedAuthChallenge!) {
-    value: authenticate(request: $request) {
+    authenticate(request: $request) {
       ...AuthenticationResult
     }
   }

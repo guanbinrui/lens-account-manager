@@ -159,7 +159,7 @@ export const useAccountManagerAuth = () => {
 
   // New method using Lens Protocol hooks (recommended approach)
   const signInWithLensProtocol = useCallback(
-    async (profile: LensProfile, isAccountManager: boolean = true) => {
+    async (profile: LensProfile, isAccountManager: boolean = false) => {
       if (!isWalletConnected) {
         setAuthState((prev) => ({
           ...prev,
@@ -215,6 +215,42 @@ export const useAccountManagerAuth = () => {
   );
 
   // Legacy method for backward compatibility
+  // Resume session from stored tokens
+  const resumeSession = useCallback(async () => {
+    const accessToken = localStorage.getItem("lens_manager_access_token");
+    const refreshToken = localStorage.getItem("lens_manager_refresh_token");
+    
+    if (!accessToken || !refreshToken) {
+      return false;
+    }
+
+    try {
+      // Verify the session is still valid by making a test request
+      const verifyResponse = await lensRequest(VERIFY_QUERY, {});
+      
+      if (verifyResponse.me?.loggedInAs?.address) {
+        setAuthState({
+          isAuthenticated: true,
+          profile: null, // We don't store the full profile in localStorage
+          tokens: {
+            accessToken,
+            refreshToken,
+          },
+          loading: false,
+          error: null,
+        });
+        return true;
+      }
+    } catch (error) {
+      console.error("Failed to resume session:", error);
+      // Clear invalid tokens
+      localStorage.removeItem("lens_manager_access_token");
+      localStorage.removeItem("lens_manager_refresh_token");
+    }
+    
+    return false;
+  }, []);
+
   const signInAsAccountManager = useCallback(
     async (
       profile: LensProfile,
@@ -232,11 +268,12 @@ export const useAccountManagerAuth = () => {
         );
 
         // Step 1: Get challenge using the account manager authentication format
+        // Using the official Lens Protocol test app for mainnet
         const challengeRequest: ChallengeRequest = {
-          accountOwner: {
+          accountManager: {
             account: profile.id, // The account being managed
-            app: "0x2F205D5bbDB60c170adF81Fb6C0F2F79331f3fAE", // Default app ID
-            owner: managerAddress, // The account manager's wallet address
+            app: "0x8A5Cc31180c37078e1EbA2A23c861Acf351a97cE", // Official Lens test app for mainnet
+            manager: managerAddress, // The account manager's wallet address
           },
         };
 
@@ -246,7 +283,7 @@ export const useAccountManagerAuth = () => {
         });
 
         console.log("Account manager challenge response:", challengeResponse);
-        const challenge: AuthenticationChallenge = challengeResponse.value;
+        const challenge: AuthenticationChallenge = challengeResponse.challenge;
 
         // Step 2: Sign the challenge with the manager's wallet
         console.log("Signing challenge text:", challenge.text);
@@ -265,7 +302,7 @@ export const useAccountManagerAuth = () => {
         });
 
         console.log("Account manager authentication response:", authResponse);
-        const result: AuthenticationResult = authResponse.value;
+        const result: AuthenticationResult = authResponse.authenticate;
 
         // Check if authentication was successful
         if (result.__typename === "AuthenticationTokens") {
@@ -372,14 +409,39 @@ export const useAccountManagerAuth = () => {
     return false;
   }, []);
 
+  // Logout method to clear session and tokens
+  const logout = useCallback(async () => {
+    try {
+      // Clear stored tokens
+      localStorage.removeItem("lens_manager_access_token");
+      localStorage.removeItem("lens_manager_refresh_token");
+      
+      // Reset auth state
+      setAuthState({
+        isAuthenticated: false,
+        profile: null,
+        tokens: null,
+        loading: false,
+        error: null,
+      });
+      
+      console.log("Account manager logged out successfully");
+      return true;
+    } catch (error) {
+      console.error("Logout failed:", error);
+      return false;
+    }
+  }, []);
+
   return {
     authState,
     managedAccounts,
     loadingManagedAccounts,
     managedAccountsError,
-    signInAsAccountManager, // Legacy method
     signInWithLensProtocol, // New recommended method
     signOut,
+    logout, // New logout method
+    resumeSession, // New session resume method
     checkAuthStatus,
     fetchManagedAccounts,
     isWalletConnected,

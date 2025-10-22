@@ -1,56 +1,85 @@
 import { useCallback } from "react";
-import { useLogin, LoginRequest } from "@lens-protocol/react";
-import { useAccount, useWalletClient } from "wagmi";
-import { EvmAddress } from "@lens-protocol/shared-kernel";
-import { ProfileId } from "@lens-protocol/domain/entities";
+import { useEthereumWallet } from "./useEthereumWallet";
+import { useLensAuth } from "./useLensAuth";
+import { LensProfile } from "@/types/lens";
 
-export function useLensLogin() {
-  const { address } = useAccount();
-  const { data: signer } = useWalletClient();
-  const { execute: login } = useLogin();
-
+export function useLensLogin(isAccountManager = false) {
+  const { wallet } = useEthereumWallet();
+  const { signInWithLens } = useLensAuth();
+  
+  const address = wallet?.address;
+  
   return useCallback(
     async (accountAddress: string, profileId?: string) => {
-      if (!signer || !address) {
-        console.warn("No wallet signer or address available");
-        return Promise.reject(new Error("No wallet signer or address available"));
+      if (!wallet || !address) {
+        console.warn("No wallet or address available");
+        return Promise.reject(new Error("No wallet or address available"));
       }
 
-      const loginRequest: LoginRequest = {
-        address: address as EvmAddress,
-        ...(profileId && { profileId: profileId as ProfileId }), // ProfileId type from lens protocol
+      // Create a mock profile for the authentication
+      const mockProfile: LensProfile = {
+        id: accountAddress,
+        handle: {
+          fullHandle: profileId || "",
+          localName: profileId || "",
+        },
+        metadata: {
+          displayName: `Account ${accountAddress.slice(0, 6)}...`,
+          bio: "",
+        },
+        stats: {
+          followers: 0,
+          following: 0,
+          posts: 0,
+        },
+        operations: {
+          isFollowedByMe: { value: false },
+          isFollowingMe: { value: false },
+          canFollow: false,
+          canUnfollow: false,
+          canBlock: false,
+          canUnblock: false,
+          canReport: false,
+        },
+        createdAt: new Date().toISOString(),
+        isManagedAccount: false,
       };
 
-      console.log("Lens login request:", loginRequest);
+      console.log("Lens login request:", { accountAddress, profileId, address });
 
       try {
-        const result = await login(loginRequest);
+        const result = await signInWithLens(mockProfile, address, async (message: string) => {
+          if (!wallet?.provider) {
+            throw new Error("Wallet provider not available");
+          }
+          const signer = await wallet.provider.getSigner();
+          return await signer.signMessage(message);
+        }, isAccountManager);
         
-        if (result.isFailure()) {
-          console.error("Login failed:", result.error);
-          throw new Error(result.error.message);
+        if (result) {
+          console.log("Login successful");
+          return { success: true, profile: mockProfile };
+        } else {
+          throw new Error("Authentication failed");
         }
-
-        console.log("Login successful:", result.value);
-        return result.value;
       } catch (error) {
         console.error("Login error:", error);
         throw error;
       }
     },
-    [signer, address, login]
+    [wallet, address, signInWithLens]
   );
 }
 
 // Extended hook that provides additional functionality for account manager authentication
 export function useLensLoginWithAccountManager() {
-  const lensLogin = useLensLogin();
-  const { address } = useAccount();
-  const { data: signer } = useWalletClient();
+  const lensLogin = useLensLogin(true);
+  const { wallet } = useEthereumWallet();
+  const address = wallet?.address;
 
   const loginAsAccountManager = useCallback(
     async (accountAddress: string, profileId?: string) => {
-      if (!signer || !address) {
+      if (!wallet || !address) {
         throw new Error("Wallet not connected");
       }
 
@@ -58,26 +87,26 @@ export function useLensLoginWithAccountManager() {
       // and the account address as the profile to manage
       return lensLogin(accountAddress, profileId);
     },
-    [lensLogin, signer, address]
+    [lensLogin, wallet, address]
   );
 
   const loginAsAccountOwner = useCallback(
     async (accountAddress: string, profileId?: string) => {
-      if (!signer || !address) {
+      if (!wallet || !address) {
         throw new Error("Wallet not connected");
       }
 
       // For account owner login, we use the wallet address as both signer and profile owner
       return lensLogin(accountAddress, profileId);
     },
-    [lensLogin, signer, address]
+    [lensLogin, wallet, address]
   );
 
   return {
     loginAsAccountManager,
     loginAsAccountOwner,
     lensLogin,
-    isWalletConnected: !!signer && !!address,
+    isWalletConnected: !!wallet && !!address,
     walletAddress: address,
   };
 }

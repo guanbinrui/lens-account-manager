@@ -40,6 +40,7 @@ export const useLensAuth = () => {
       profile: LensProfile,
       walletAddress: string,
       signMessage: (message: string) => Promise<string>,
+      isAccountManager: boolean,
     ) => {
       setAuthState((prev) => ({ ...prev, loading: true, error: null }));
 
@@ -52,10 +53,17 @@ export const useLensAuth = () => {
         );
 
         // Step 1: Get challenge using the new API format
-        const challengeRequest: ChallengeRequest = {
+        // Using the official Lens Protocol test app for mainnet
+        const challengeRequest: ChallengeRequest = isAccountManager ? {
+          accountManager: {
+            account: profile.id,
+            app: "0x8A5Cc31180c37078e1EbA2A23c861Acf351a97cE",
+            manager: walletAddress,
+          },
+        } : {
           accountOwner: {
             account: profile.id, // Use the profile's account address
-            app: "0x2F205D5bbDB60c170adF81Fb6C0F2F79331f3fAE", // Default app ID
+            app: "0x8A5Cc31180c37078e1EbA2A23c861Acf351a97cE", // Official Lens test app for mainnet
             owner: walletAddress, // The wallet owner
           },
         };
@@ -66,7 +74,7 @@ export const useLensAuth = () => {
         });
 
         console.log("Challenge response:", challengeResponse);
-        const challenge: AuthenticationChallenge = challengeResponse.value;
+        const challenge: AuthenticationChallenge = challengeResponse.challenge;
 
         // Step 2: Sign the challenge with wallet
         console.log("Signing challenge text:", challenge.text);
@@ -85,7 +93,7 @@ export const useLensAuth = () => {
         });
 
         console.log("Authentication response:", authResponse);
-        const result: AuthenticationResult = authResponse.value;
+        const result: AuthenticationResult = authResponse.authenticate;
 
         // Check if authentication was successful
         if (result.__typename === "AuthenticationTokens") {
@@ -192,10 +200,72 @@ export const useLensAuth = () => {
     return false;
   }, []);
 
+  // Resume session from stored tokens
+  const resumeSession = useCallback(async () => {
+    const accessToken = localStorage.getItem("lens_access_token");
+    const refreshToken = localStorage.getItem("lens_refresh_token");
+    
+    if (!accessToken || !refreshToken) {
+      return false;
+    }
+
+    try {
+      // Verify the session is still valid by making a test request
+      const verifyResponse = await lensRequest(VERIFY_QUERY, {});
+      
+      if (verifyResponse.me?.loggedInAs?.address) {
+        setAuthState({
+          isAuthenticated: true,
+          profile: null, // We don't store the full profile in localStorage
+          tokens: {
+            accessToken,
+            refreshToken,
+          },
+          loading: false,
+          error: null,
+        });
+        return true;
+      }
+    } catch (error) {
+      console.error("Failed to resume session:", error);
+      // Clear invalid tokens
+      localStorage.removeItem("lens_access_token");
+      localStorage.removeItem("lens_refresh_token");
+    }
+    
+    return false;
+  }, []);
+
+  // Logout method to clear session and tokens
+  const logout = useCallback(async () => {
+    try {
+      // Clear stored tokens
+      localStorage.removeItem("lens_access_token");
+      localStorage.removeItem("lens_refresh_token");
+      
+      // Reset auth state
+      setAuthState({
+        isAuthenticated: false,
+        profile: null,
+        tokens: null,
+        loading: false,
+        error: null,
+      });
+      
+      console.log("Lens user logged out successfully");
+      return true;
+    } catch (error) {
+      console.error("Logout failed:", error);
+      return false;
+    }
+  }, []);
+
   return {
     authState,
     signInWithLens,
     signOut,
+    logout, // New logout method
+    resumeSession, // New session resume method
     checkAuthStatus,
   };
 };

@@ -168,10 +168,15 @@ export type AuthenticationResult =
   | ForbiddenError;
 
 export interface ChallengeRequest {
-  accountOwner: {
+  accountOwner?: {
     account: string;
     app: string;
     owner: string;
+  };
+  accountManager?: {
+    account: string;
+    app: string;
+    manager: string;
   };
 }
 

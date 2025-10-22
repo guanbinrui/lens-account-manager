@@ -63,7 +63,7 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
     }
 
     try {
-      await signInWithLens(profile, wallet.address, signMessage);
+      await signInWithLens(profile, wallet.address, signMessage, false);
     } catch (error) {
       console.error("Sign-in error:", error);
     }
@@ -269,16 +269,6 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
             </button>
           )}
 
-          {/* Signless Experience Button */}
-          {authState.isAuthenticated && authState.tokens?.accessToken && (
-            <button
-              onClick={handleEnableSignless}
-              className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 rounded-md transition-colors"
-            >
-              Enable Signless
-            </button>
-          )}
-
           {/* Authentication Status */}
           {authState.isAuthenticated && authState.profile && (
             <div className="flex items-center space-x-2">
@@ -368,39 +358,6 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
                         </span>
                       </div>
                     )}
-                    {profile.accountManagerPermissions && (
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1">
-                          Account Manager Permissions:
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {profile.accountManagerPermissions
-                            .canExecuteTransactions && (
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                              Execute Transactions
-                            </span>
-                          )}
-                          {profile.accountManagerPermissions
-                            .canSetMetadataUri && (
-                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
-                              Set Metadata URI
-                            </span>
-                          )}
-                          {profile.accountManagerPermissions
-                            .canTransferNative && (
-                            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">
-                              Transfer Native Tokens
-                            </span>
-                          )}
-                          {profile.accountManagerPermissions
-                            .canTransferTokens && (
-                            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">
-                              Transfer Tokens
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -432,7 +389,7 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
                     authState.profile?.id === profile.id ? (
                     "✓ Signed In"
                   ) : (
-                    "Sign In"
+                    "Sign In as Owner"
                   )}
                 </button>
               </div>

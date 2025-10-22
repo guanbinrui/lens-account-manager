@@ -21,7 +21,6 @@ export const AccountManagerLogin: React.FC = () => {
     managedAccounts,
     loadingManagedAccounts,
     managedAccountsError,
-    signInAsAccountManager, // Legacy method
     signInWithLensProtocol, // New recommended method
     signOut,
     fetchManagedAccounts,
@@ -38,7 +37,7 @@ export const AccountManagerLogin: React.FC = () => {
   }, [wallet?.address, fetchManagedAccounts]);
 
   // New method using Lens Protocol hooks (recommended)
-  const handleSignInWithLensProtocol = async (profile: LensProfile, isAccountManager: boolean = true) => {
+  const handleSignInWithLensProtocol = async (profile: LensProfile) => {
     if (!isWalletConnected) {
       console.error("Wallet not connected");
       return;
@@ -46,25 +45,9 @@ export const AccountManagerLogin: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await signInWithLensProtocol(profile, isAccountManager);
+      await signInWithLensProtocol(profile, true); // Always sign in as account manager
     } catch (error) {
       console.error("Lens Protocol sign-in error:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Legacy method for backward compatibility
-  const handleSignInAsManager = async (profile: LensProfile) => {
-    if (!wallet?.address || !signMessage) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await signInAsAccountManager(profile, wallet.address, signMessage);
-    } catch (error) {
-      console.error("Sign-in error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -283,101 +266,40 @@ export const AccountManagerLogin: React.FC = () => {
                               {profile.accountManagerAddress?.slice(-4)}
                             </span>
                           </div>
-                          {profile.accountManagerPermissions && (
-                            <div>
-                              <div className="text-xs text-gray-500 mb-1">
-                                Manager Permissions:
-                              </div>
-                              <div className="flex flex-wrap gap-1">
-                                {profile.accountManagerPermissions.canExecuteTransactions && (
-                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                                    Execute Transactions
-                                  </span>
-                                )}
-                                {profile.accountManagerPermissions.canSetMetadataUri && (
-                                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
-                                    Set Metadata URI
-                                  </span>
-                                )}
-                                {profile.accountManagerPermissions.canTransferNative && (
-                                  <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">
-                                    Transfer Native Tokens
-                                  </span>
-                                )}
-                                {profile.accountManagerPermissions.canTransferTokens && (
-                                  <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">
-                                    Transfer Tokens
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>
 
                     {/* Actions */}
                     <div className="flex-shrink-0 flex flex-col items-end space-y-2">
-                      {/* Sign In Buttons */}
-                      <div className="flex flex-col space-y-1">
-                        {/* Account Manager Sign In */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSignInWithLensProtocol(profile, true);
-                          }}
-                          disabled={isLoading || authState.loading || !isWalletConnected}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                            isLoading || authState.loading || !isWalletConnected
-                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                              : authState.isAuthenticated &&
-                                  authState.profile?.id === profile.id
-                                ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                : "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                          }`}
-                        >
-                          {isLoading || authState.loading ? (
-                            <div className="flex items-center">
-                              <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-500 mr-1"></div>
-                              Signing in...
-                            </div>
-                          ) : authState.isAuthenticated &&
-                            authState.profile?.id === profile.id ? (
-                            "✓ Signed In"
-                          ) : (
-                            "Sign In as Manager"
-                          )}
-                        </button>
-
-                        {/* Account Owner Sign In */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSignInWithLensProtocol(profile, false);
-                          }}
-                          disabled={isLoading || authState.loading || !isWalletConnected}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                            isLoading || authState.loading || !isWalletConnected
-                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                              : authState.isAuthenticated &&
-                                  authState.profile?.id === profile.id
-                                ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                : "bg-purple-100 text-purple-700 hover:bg-purple-200"
-                          }`}
-                        >
-                          {isLoading || authState.loading ? (
-                            <div className="flex items-center">
-                              <div className="animate-spin rounded-full h-3 w-3 border-b border-purple-500 mr-1"></div>
-                              Signing in...
-                            </div>
-                          ) : authState.isAuthenticated &&
-                            authState.profile?.id === profile.id ? (
-                            "✓ Signed In"
-                          ) : (
-                            "Sign In as Owner"
-                          )}
-                        </button>
-                      </div>
+                      {/* Sign In Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSignInWithLensProtocol(profile);
+                        }}
+                        disabled={isLoading || authState.loading || !isWalletConnected}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                          isLoading || authState.loading || !isWalletConnected
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : authState.isAuthenticated &&
+                                authState.profile?.id === profile.id
+                              ? "bg-green-100 text-green-700 hover:bg-green-200"
+                              : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                        }`}
+                      >
+                        {isLoading || authState.loading ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-500 mr-1"></div>
+                            Signing in...
+                          </div>
+                        ) : authState.isAuthenticated &&
+                          authState.profile?.id === profile.id ? (
+                          "✓ Signed In"
+                        ) : (
+                          "Sign In as Manager"
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
