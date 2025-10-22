@@ -236,6 +236,116 @@ export const AUTHENTICATE_MUTATION = `
   }
 `;
 
+// Account Manager Management Mutations
+export const ADD_ACCOUNT_MANAGER_MUTATION = `
+  mutation AddAccountManager($request: AddAccountManagerRequest!) {
+    value: addAccountManager(request: $request) {
+      ... on SponsoredTransactionRequest {
+        ...SponsoredTransactionRequest
+      }
+      ... on SelfFundedTransactionRequest {
+        ...SelfFundedTransactionRequest
+      }
+      ... on TransactionWillFail {
+        ...TransactionWillFail
+      }
+    }
+  }
+  fragment SponsoredTransactionRequest on SponsoredTransactionRequest {
+    __typename
+    raw {
+      ...Eip712TransactionRequest
+    }
+    reason
+    sponsoredReason
+  }
+  fragment SelfFundedTransactionRequest on SelfFundedTransactionRequest {
+    __typename
+    raw {
+      ...Eip1559TransactionRequest
+    }
+    reason
+    selfFundedReason
+  }
+  fragment TransactionWillFail on TransactionWillFail {
+    __typename
+    reason
+  }
+  fragment Eip712TransactionRequest on Eip712TransactionRequest {
+    __typename
+    type
+    to
+    from
+    nonce
+    gasLimit
+    maxPriorityFeePerGas
+    maxFeePerGas
+    data
+    value
+    chainId
+    customData {
+      ...Eip712Meta
+    }
+  }
+  fragment Eip1559TransactionRequest on Eip1559TransactionRequest {
+    __typename
+    to
+    data
+    value
+    gasLimit
+    maxFeePerGas
+    maxPriorityFeePerGas
+    nonce
+    chainId
+  }
+  fragment Eip712Meta on Eip712Meta {
+    __typename
+    gasPerPubdata
+    factoryDeps
+    customSignature
+    paymasterParams {
+      ...PaymasterParams
+    }
+  }
+  fragment PaymasterParams on PaymasterParams {
+    __typename
+    paymaster
+    paymasterInput
+  }
+`;
+
+export const REMOVE_ACCOUNT_MANAGER_MUTATION = `
+  mutation RemoveAccountManager($request: RemoveAccountManagerRequest!) {
+    value: removeAccountManager(request: $request) {
+      ... on SponsoredTransactionRequest {
+        ...SponsoredTransactionRequest
+      }
+      ... on SelfFundedTransactionRequest {
+        ...SelfFundedTransactionRequest
+      }
+      ... on TransactionWillFail {
+        ...TransactionWillFail
+      }
+    }
+  }
+`;
+
+export const UPDATE_ACCOUNT_MANAGER_PERMISSIONS_MUTATION = `
+  mutation UpdateAccountManagerPermissions($request: UpdateAccountManagerPermissionsRequest!) {
+    value: updateAccountManagerPermissions(request: $request) {
+      ... on SponsoredTransactionRequest {
+        ...SponsoredTransactionRequest
+      }
+      ... on SelfFundedTransactionRequest {
+        ...SelfFundedTransactionRequest
+      }
+      ... on TransactionWillFail {
+        ...TransactionWillFail
+      }
+    }
+  }
+`;
+
 // Legacy queries for backward compatibility
 export const GET_PROFILES_BY_ADDRESS = `
   query GetAccountByAddress($address: EvmAddress!) {
@@ -299,7 +409,11 @@ export const GET_PROFILE_DETAILS = `
 `;
 
 // Helper function to make GraphQL requests
-export const lensRequest = async (query: string, variables: Record<string, unknown> = {}) => {
+export const lensRequest = async (
+  query: string, 
+  variables: Record<string, unknown> = {},
+  accessToken?: string
+) => {
   try {
     const requestBody: any = {
       query,
@@ -314,27 +428,35 @@ export const lensRequest = async (query: string, variables: Record<string, unkno
     console.log('Lens API Request:', {
       url: LENS_API_URL,
       body: requestBody,
+      hasAuth: !!accessToken,
     });
+
+    const headers: Record<string, string> = {
+      'accept': 'application/graphql-response+json, application/graphql+json, application/json, text/event-stream, multipart/mixed',
+      'accept-language': 'en,zh-CN;q=0.9,zh;q=0.8',
+      'cache-control': 'no-cache',
+      'content-type': 'application/json',
+      'origin': 'https://firefly.social',
+      'pragma': 'no-cache',
+      'priority': 'u=1, i',
+      'referer': 'https://firefly.social/',
+      'sec-ch-ua': '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"macOS"',
+      'sec-fetch-dest': 'empty',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-site': 'cross-site',
+      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+    };
+
+    // Add authorization header if access token is provided
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
 
     const response = await fetch(LENS_API_URL, {
       method: 'POST',
-      headers: {
-        'accept': 'application/graphql-response+json, application/graphql+json, application/json, text/event-stream, multipart/mixed',
-        'accept-language': 'en,zh-CN;q=0.9,zh;q=0.8',
-        'cache-control': 'no-cache',
-        'content-type': 'application/json',
-        'origin': 'https://firefly.social',
-        'pragma': 'no-cache',
-        'priority': 'u=1, i',
-        'referer': 'https://firefly.social/',
-        'sec-ch-ua': '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"macOS"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'cross-site',
-        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
 

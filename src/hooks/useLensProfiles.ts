@@ -8,8 +8,10 @@ export const useLensProfiles = (address: string | null) => {
   const [error, setError] = useState<string | null>(null);
 
   // Helper function to convert new API response to legacy LensProfile format
-  const convertToLensProfile = (accountItem: AccountManaged | AccountOwned): LensProfile => {
+  const convertToLensProfile = (accountItem: AccountManaged | AccountOwned, managerAddress?: string): LensProfile => {
     const account = accountItem.account;
+    const isManagedAccount = accountItem.__typename === 'AccountManaged';
+    
     return {
       id: account.address,
       handle: {
@@ -57,6 +59,9 @@ export const useLensProfiles = (address: string | null) => {
         canReport: account.operations?.hasReported || false,
       },
       createdAt: account.createdAt,
+      accountManagerPermissions: isManagedAccount ? (accountItem as AccountManaged).permissions : undefined,
+      isManagedAccount,
+      accountManagerAddress: isManagedAccount ? managerAddress : undefined,
     };
   };
 
@@ -80,7 +85,7 @@ export const useLensProfiles = (address: string | null) => {
       });
 
       // Convert the new API response to legacy format
-      const convertedProfiles = data.value?.items?.map(convertToLensProfile) || [];
+      const convertedProfiles = data.value?.items?.map(item => convertToLensProfile(item, walletAddress)) || [];
       setProfiles(convertedProfiles);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch Lens profiles');

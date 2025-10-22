@@ -244,6 +244,9 @@ export interface LensProfile {
   stats: LensStats;
   operations?: LensOperations;
   createdAt: string;
+  accountManagerPermissions?: AccountManagerPermissions;
+  isManagedAccount?: boolean;
+  accountManagerAddress?: string;
 }
 
 export interface LensProfilesResponse {
@@ -260,3 +263,93 @@ export interface LensAuthChallenge {
   id: string;
   text: string;
 }
+
+// Account Manager Management Types
+export interface AddAccountManagerRequest {
+  address: string;
+  permissions?: {
+    canExecuteTransactions?: boolean;
+    canSetMetadataUri?: boolean;
+    canTransferNative?: boolean;
+    canTransferTokens?: boolean;
+  };
+}
+
+export interface RemoveAccountManagerRequest {
+  address: string;
+}
+
+export interface UpdateAccountManagerPermissionsRequest {
+  address: string;
+  permissions: {
+    canExecuteTransactions: boolean;
+    canSetMetadataUri: boolean;
+    canTransferNative: boolean;
+    canTransferTokens: boolean;
+  };
+}
+
+// Transaction request types
+export interface PaymasterParams {
+  __typename: string;
+  paymaster: string;
+  paymasterInput: string;
+}
+
+export interface Eip712Meta {
+  __typename: string;
+  gasPerPubdata: string;
+  factoryDeps: string[];
+  customSignature?: string;
+  paymasterParams?: PaymasterParams;
+}
+
+export interface Eip712TransactionRequest {
+  __typename: string;
+  type: number;
+  to: string;
+  from: string;
+  nonce: number;
+  gasLimit: number;
+  maxPriorityFeePerGas: string;
+  maxFeePerGas: string;
+  data: string;
+  value: string;
+  chainId: number;
+  customData: Eip712Meta;
+}
+
+export interface Eip1559TransactionRequest {
+  __typename: string;
+  to: string;
+  data: string;
+  value: string;
+  gasLimit: string;
+  maxFeePerGas: string;
+  maxPriorityFeePerGas: string;
+  nonce: number;
+  chainId: number;
+}
+
+export interface SponsoredTransactionRequest {
+  __typename: 'SponsoredTransactionRequest';
+  raw: Eip712TransactionRequest;
+  reason: string;
+  sponsoredReason: string;
+}
+
+export interface SelfFundedTransactionRequest {
+  __typename: 'SelfFundedTransactionRequest';
+  raw: Eip1559TransactionRequest;
+  reason: string;
+  selfFundedReason: string;
+}
+
+export interface TransactionWillFail {
+  __typename: 'TransactionWillFail';
+  reason: string;
+}
+
+export type AddAccountManagerResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
+export type RemoveAccountManagerResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;
+export type UpdateAccountManagerPermissionsResponse = SponsoredTransactionRequest | SelfFundedTransactionRequest | TransactionWillFail;

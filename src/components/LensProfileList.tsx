@@ -1,45 +1,76 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { LensProfile } from '@/types/lens';
 import { useLensAuth } from '@/hooks/useLensAuth';
 import { useEthereumWallet } from '@/hooks/useEthereumWallet';
+import { useAccountManager } from '@/hooks/useAccountManager';
 
 interface LensProfileListProps {
   profiles: LensProfile[];
   loading: boolean;
   error: string | null;
-  onSelectProfile: (profile: LensProfile) => void;
-  selectedProfileId?: string;
 }
 
 export const LensProfileList: React.FC<LensProfileListProps> = ({
   profiles,
   loading,
   error,
-  onSelectProfile,
-  selectedProfileId,
 }) => {
   const { authState, signInWithLens, signOut } = useLensAuth();
   const { wallet, signMessage } = useEthereumWallet();
+  const [managerAddress, setManagerAddress] = useState('');
+  const [showManagerForm, setShowManagerForm] = useState(false);
+  const { 
+    loading: managerLoading, 
+    error: managerError, 
+    success: managerSuccess,
+    addAccountManager,
+    clearMessages 
+  } = useAccountManager();
 
   const handleSignIn = async (profile: LensProfile) => {
     if (!wallet?.address || !signMessage) {
-      alert('Please connect your wallet first');
       return;
     }
 
     try {
-      const success = await signInWithLens(profile, wallet.address, signMessage);
-      if (success) {
-        alert(`Successfully signed in as ${profile.handle.localName}!`);
-      } else {
-        alert('Sign-in failed. Please try again.');
-      }
+      await signInWithLens(profile, wallet.address, signMessage);
     } catch (error) {
       console.error('Sign-in error:', error);
-      alert('Sign-in failed. Please try again.');
     }
+  };
+
+  const handleAddManager = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!managerAddress.trim() || !authState.tokens?.accessToken) {
+      return;
+    }
+
+    // Basic Ethereum address validation
+    if (!/^0x[a-fA-F0-9]{40}$/.test(managerAddress.trim())) {
+      return;
+    }
+
+    const success = await addAccountManager({
+      address: managerAddress.trim(),
+      permissions: {
+        canExecuteTransactions: true,
+        canSetMetadataUri: true,
+        canTransferNative: false,
+        canTransferTokens: false,
+      }
+    }, authState.tokens.accessToken);
+
+    if (success) {
+      setManagerAddress('');
+      setShowManagerForm(false);
+    }
+  };
+
+  const isValidEthereumAddress = (address: string): boolean => {
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
   };
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
@@ -113,33 +144,43 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
           Lens Profiles ({profiles.length})
         </h3>
         
-        {/* Authentication Status */}
-        {authState.isAuthenticated && authState.profile && (
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-md text-sm">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Signed in as @{authState.profile.handle.localName}</span>
-            </div>
+        <div className="flex items-center space-x-2">
+          {/* Manager Account Button */}
+          {authState.isAuthenticated && authState.tokens?.accessToken && (
             <button
-              onClick={signOut}
-              className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+              onClick={() => {
+                setShowManagerForm(!showManagerForm);
+                clearMessages();
+              }}
+              className="px-3 py-1.5 text-xs font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-md transition-colors"
             >
-              Sign Out
+              {showManagerForm ? 'Cancel Manager' : 'Manager Account'}
             </button>
-          </div>
-        )}
+          )}
+          
+          {/* Authentication Status */}
+          {authState.isAuthenticated && authState.profile && (
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-md text-sm">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>Signed in as @{authState.profile.handle.localName}</span>
+              </div>
+              <button
+                onClick={signOut}
+                className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="space-y-4">
         {profiles.map((profile) => (
           <div
             key={profile.id}
-            onClick={() => onSelectProfile(profile)}
-            className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-              selectedProfileId === profile.id
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
+            className="p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-all hover:shadow-md"
           >
             <div className="flex items-start space-x-4">
               {/* Profile Picture */}
@@ -179,10 +220,55 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
                   <span>{formatNumber(profile.stats.posts)} posts</span>
                   <span>Created {formatDate(profile.createdAt)}</span>
                 </div>
+
+                {/* Account Manager Information */}
+                {profile.isManagedAccount && (
+                  <div className="mt-2">
+                    {profile.accountManagerAddress && (
+                      <div className="text-xs text-gray-500 mb-1">
+                        <span className="font-medium">Account Manager:</span>{' '}
+                        <span 
+                          className="font-mono text-gray-700 cursor-pointer hover:text-blue-600 transition-colors"
+                          title={profile.accountManagerAddress}
+                          onClick={() => navigator.clipboard?.writeText(profile.accountManagerAddress!)}
+                        >
+                          {profile.accountManagerAddress.slice(0, 6)}...{profile.accountManagerAddress.slice(-4)}
+                        </span>
+                      </div>
+                    )}
+                    {profile.accountManagerPermissions && (
+                      <div>
+                        <div className="text-xs text-gray-500 mb-1">Account Manager Permissions:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {profile.accountManagerPermissions.canExecuteTransactions && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                              Execute Transactions
+                            </span>
+                          )}
+                          {profile.accountManagerPermissions.canSetMetadataUri && (
+                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
+                              Set Metadata URI
+                            </span>
+                          )}
+                          {profile.accountManagerPermissions.canTransferNative && (
+                            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">
+                              Transfer Native Tokens
+                            </span>
+                          )}
+                          {profile.accountManagerPermissions.canTransferTokens && (
+                            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">
+                              Transfer Tokens
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
-              <div className="flex-shrink-0 flex items-center space-x-2">
+              <div className="flex-shrink-0 flex flex-col items-end space-y-2">
                 {/* Sign In Button */}
                 <button
                   onClick={(e) => {
@@ -210,19 +296,110 @@ export const LensProfileList: React.FC<LensProfileListProps> = ({
                   )}
                 </button>
 
-                {/* Selection Indicator */}
-                {selectedProfileId === profile.id && (
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Account Manager Form */}
+      {showManagerForm && authState.isAuthenticated && authState.tokens?.accessToken && (
+        <div className="mt-6 border-t border-gray-200 pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Account Manager Management
+            </h3>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            <form onSubmit={handleAddManager} className="space-y-4">
+              <div>
+                <label htmlFor="managerAddress" className="block text-sm font-medium text-gray-700 mb-2">
+                  Ethereum Wallet Address
+                </label>
+                <input
+                  type="text"
+                  id="managerAddress"
+                  value={managerAddress}
+                  onChange={(e) => setManagerAddress(e.target.value)}
+                  placeholder="0x..."
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white ${
+                    managerAddress && !isValidEthereumAddress(managerAddress) 
+                      ? 'border-red-300' 
+                      : 'border-gray-300'
+                  }`}
+                  required
+                />
+                {managerAddress && !isValidEthereumAddress(managerAddress) && (
+                  <p className="text-red-500 text-xs mt-1">Please enter a valid Ethereum address</p>
+                )}
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <h4 className="text-sm font-medium text-yellow-800 mb-2">Default Permissions</h4>
+                <div className="text-xs text-yellow-700 space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Execute Transactions</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Set Metadata URI</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    <span>Transfer Native Tokens (disabled)</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    <span>Transfer Tokens (disabled)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  type="submit"
+                  disabled={managerLoading || !isValidEthereumAddress(managerAddress)}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  {managerLoading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Adding Manager...
+                    </div>
+                  ) : (
+                    'Set Account Manager'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowManagerForm(false);
+                    setManagerAddress('');
+                    clearMessages();
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {managerError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-700 text-sm">{managerError}</p>
+                </div>
+              )}
+
+              {managerSuccess && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-green-700 text-sm">{managerSuccess}</p>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

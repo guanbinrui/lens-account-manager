@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useWallet } from '@/context/WalletContext';
 import { WalletButton } from './WalletButton';
 import { LensProfileList } from './LensProfileList';
-import { LensProfileDetail } from './LensProfileDetail';
 import { useLensProfiles } from '@/hooks/useLensProfiles';
-import { useLensProfile } from '@/hooks/useLensProfile';
 import { useLensAuth } from '@/hooks/useLensAuth';
 import { LensProfile } from '@/types/lens';
 
@@ -22,28 +20,12 @@ export const WalletDashboard: React.FC = () => {
     isMetaMaskInstalled
   } = useWallet();
 
-  const [selectedProfile, setSelectedProfile] = useState<LensProfile | null>(null);
-  const [showDetail, setShowDetail] = useState(false);
-
   // Lens hooks
   const { profiles, loading: profilesLoading, error: profilesError } = useLensProfiles(wallet?.address || null);
-  const { profile: detailedProfile, loading: detailLoading, fetchProfile, clearProfile } = useLensProfile();
   const { authState, signInWithLens } = useLensAuth();
 
   const refreshBalance = async () => {
     await getBalance();
-  };
-
-  const handleSelectProfile = async (profile: LensProfile) => {
-    setSelectedProfile(profile);
-    setShowDetail(true);
-    await fetchProfile(profile.id);
-  };
-
-  const handleBackToList = () => {
-    setShowDetail(false);
-    setSelectedProfile(null);
-    clearProfile();
   };
 
   const handleSignInWithLens = async (profile: LensProfile) => {
@@ -145,24 +127,16 @@ export const WalletDashboard: React.FC = () => {
           </div>
 
           {/* Lens Profiles Section */}
-          {showDetail && detailedProfile ? (
-            <LensProfileDetail
-              profile={detailedProfile}
-              loading={detailLoading}
-              onSignIn={handleSignInWithLens}
-              onBack={handleBackToList}
-              isAuthenticated={authState.isAuthenticated && authState.profile?.id === detailedProfile.id}
-              authLoading={authState.loading}
-            />
-          ) : (
-            <LensProfileList
-              profiles={profiles}
-              loading={profilesLoading}
-              error={profilesError}
-              onSelectProfile={handleSelectProfile}
-              selectedProfileId={selectedProfile?.id}
-            />
-          )}
+          <LensProfileList
+            profiles={profiles}
+            loading={profilesLoading}
+            error={profilesError}
+            onSignIn={handleSignInWithLens}
+            isAuthenticated={authState.isAuthenticated}
+            authProfile={authState.profile}
+            authLoading={authState.loading}
+            accessToken={authState.tokens?.accessToken}
+          />
         </div>
       )}
 
